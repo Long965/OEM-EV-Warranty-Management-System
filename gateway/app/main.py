@@ -4,8 +4,12 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.openapi.models import SecuritySchemeType
 from app.routes import auth_routes, report_routes
 from app.middleware.auth_middleware import AuthMiddleware
+from app.middleware.logging_middleware import LoggingMiddleware 
+
 
 app = FastAPI(title="EV Warranty - API Gateway")
+app.add_middleware(LoggingMiddleware)
+
 
 # CORS - chỉnh theo nhu cầu
 app.add_middleware(
@@ -26,6 +30,10 @@ app.include_router(report_routes.router, prefix="/report", tags=["Report"])
 async def root():
     return {"message": "Welcome to EV Warranty API Gateway"}
 
+@app.get("/health")
+async def health():
+    return {"status": "ok", "gateway": True}
+
 
 def custom_openapi():
     if app.openapi_schema:
@@ -38,7 +46,6 @@ def custom_openapi():
         routes=app.routes,
     )
 
-    # 🔧 Sửa lại phần này
     openapi_schema["components"]["securitySchemes"] = {
         "BearerAuth": {
             "type": "http",             # <-- Dùng chuỗi 'http' thay vì SecuritySchemeType.http
