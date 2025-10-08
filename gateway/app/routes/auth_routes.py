@@ -1,15 +1,23 @@
 from fastapi import APIRouter, Request
+from pydantic import BaseModel
 from app.core.config import AUTH_SERVICE_URL
 from app.utils.proxy import forward_request
 from app.middleware.role_guard import require_roles
 
+
 router = APIRouter()
 
-# === ROUTE CỤ THỂ ===
-@router.post("/login")
-async def login(request: Request):
+class LoginSchema(BaseModel):
+    username: str
+    password: str
+
+@router.post("/login", include_in_schema=True)
+async def login_proxy(request: Request, body: LoginSchema):
+    """
+    Forward login request with JSON body to Auth Service
+    """
     upstream = f"{AUTH_SERVICE_URL}/login"
-    return await forward_request(request, upstream)
+    return await forward_request(request, upstream, json_body=body.dict())
 
 @router.post("/register")
 async def register(request: Request):
