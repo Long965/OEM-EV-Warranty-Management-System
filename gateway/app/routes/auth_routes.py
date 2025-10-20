@@ -13,9 +13,6 @@ class LoginSchema(BaseModel):
 
 @router.post("/login", include_in_schema=True)
 async def login_proxy(request: Request, body: LoginSchema):
-    """
-    Forward login request with JSON body to Auth Service
-    """
     upstream = f"{AUTH_SERVICE_URL}/login"
     return await forward_request(request, upstream, json_body=body.dict())
 
