@@ -1,0 +1,47 @@
+# ===========================================
+# PART & SC SUPER SERVICE - OEM EV WARRANTY
+# 5 Functions: Parts + VIN + Inventory + Distribution + Alerts
+# Python 3.11 | FastAPI | MySQL | Celery | Email
+# Designed: 25/09/2025
+# ===========================================
+
+# CORE FRAMEWORK
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# DATABASE
+sqlalchemy==2.0.23
+pymysql==1.1.0
+alembic==1.12.1
+
+# AUTH & SECURITY
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# ASYNC TASKS (Background Alerts)
+celery==5.3.4
+redis==5.0.1
+
+# EMAIL (SMTP Alerts)
+aiosmtplib==2.0.2
+
+# ENVIRONMENT
+python-dotenv==1.0.0
+
+# VALIDATION & UTILS
+pydantic[email]==2.5.0
+python-dateutil==2.8.2
+
+# LOGGING
+structlog==23.2.0
+
+# TESTING
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# DEVELOPMENT
+black==23.11.0
+isort==5.12.0
+mypy==1.6.1
