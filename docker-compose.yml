@@ -23,13 +23,13 @@ services:
       - mysql
 
   user_service:
-  build: ./user_service
-  ports:
-    - "8002:8002"
-  environment:
-    - DATABASE_URL=mysql+pymysql://root:long12345@mysql:3306/ev_warranty_db
-  depends_on:
-    - mysql
+    build: ./user_service
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:long12345@mysql:3306/ev_warranty_db
+    depends_on:
+      - mysql
 
   gateway:
     build: ./gateway
