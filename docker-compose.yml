@@ -17,19 +17,19 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - DATABASE_URL=mysql+pymysql://root:long12345@host.docker.internal:3306/ev_warranty_db
+      - DATABASE_URL=mysql+pymysql://root:long12345@mysql:3306/ev_warranty_db
       - JWT_SECRET=super-secret-key
     depends_on:
       - mysql
 
   user_service:
-    build: ./user_service
-    ports:
-      - "8002:8002"
-    environment:
-      - DATABASE_URL=mysql+pymysql://root:long12345@host.docker.internal:3306/ev_warranty_db
-    depends_on:
-      - mysql
+  build: ./user_service
+  ports:
+    - "8002:8002"
+  environment:
+    - DATABASE_URL=mysql+pymysql://root:long12345@mysql:3306/ev_warranty_db
+  depends_on:
+    - mysql
 
   gateway:
     build: ./gateway
