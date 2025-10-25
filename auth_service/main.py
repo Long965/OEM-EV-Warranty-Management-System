@@ -1,27 +1,41 @@
-from fastapi import FastAPI
-import jwt, datetime, os
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from . import db, models, schemas, utils, jwt_handler
 
-app = FastAPI()
-JWT_SECRET = os.getenv("JWT_SECRET", "very-secret-change-me")
-JWT_ALG = os.getenv("JWT_ALGORITHM", "HS256")
+app = FastAPI(title="Auth Service")
 
-@app.post("/login")
-async def login(data: dict):
-    # nhận username/password (Ở stub: không kiểm tra mật khẩu)
-    username = data.get("username", "user1")
-    payload = {
-        "sub": username,
-        "role": "EVM_Staff",
-        "exp": int(datetime.datetime.utcnow().timestamp()) + 3600
-    }
-    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+@app.post("/register")
+def register(payload: schemas.RegisterIn, db: Session = Depends(db.get_db)):
+    allowed_roles = ["SC_Staff", "SC_Technician", "EVM_Staff"]
+
+    if payload.role_name == "Admin":
+        raise HTTPException(status_code=403, detail="Cannot register as Admin")
+
+    if payload.role_name not in allowed_roles:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    role = db.query(models.Role).filter_by(role_name=payload.role_name).first()
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+
+    if db.query(models.User).filter_by(username=payload.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    new_user = models.User(
+        username=payload.username,
+        password_hash=utils.hash_password(payload.password),
+        email=payload.email,
+        role_id=role.role_id
+    )
+    db.add(new_user)
+    db.commit()
+    return {"message": f"User '{payload.username}' registered as {payload.role_name}"}
+
+@app.post("/login", response_model=schemas.TokenOut)
+def login(payload: schemas.LoginIn, db: Session = Depends(db.get_db)):
+    user = db.query(models.User).filter_by(username=payload.username).first()
+    if not user or not utils.verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    token = jwt_handler.create_access_token({"sub": user.username, "role": user.role.role_name})
     return {"access_token": token, "token_type": "bearer"}
-
-@app.get("/verify")
-async def verify(token: str):
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
-        return {"valid": True, "payload": payload}
-    except jwt.PyJWTError:
-        return {"valid": False}
-

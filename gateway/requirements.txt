@@ -1,5 +1,4 @@
 fastapi
-uvicorn[standard]
-httpx[http2]
+uvicorn
+httpx
 PyJWT
-python-dotenv
