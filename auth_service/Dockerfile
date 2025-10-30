@@ -1,15 +1,20 @@
-# Sử dụng base image Python
 FROM python:3.10-slim
 
-WORKDIR /app/auth_service
+# Đặt thư mục làm việc gốc
+WORKDIR /app
 
-# Sao chép file cần thiết
+# Cài đặt dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy toàn bộ mã nguồn auth_service vào /app/auth_service
+COPY . /app/auth_service
 
+# Chuyển vào thư mục module
+WORKDIR /app/auth_service
+
+# Expose port cho service
 EXPOSE 8001
 
-# Lệnh chạy service
+# Chạy module chính
 CMD ["python", "-m", "auth_service.main"]
