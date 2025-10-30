@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from . import db, models, schemas, utils, jwt_handler
+import db, models, schemas, utils, jwt_handler
 
 app = FastAPI(title="Auth Service")
 
