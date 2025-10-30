@@ -1,11 +1,10 @@
 FROM python:3.10-slim
 
 WORKDIR /app/auth_service
-
-COPY requirements.txt /app/auth_service/
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . /app/auth_service
+COPY . .
 
 EXPOSE 8001
-CMD ["python", "main.py"]
+
+CMD ["sh", "-c", "python init_db.py && python main.py"]
