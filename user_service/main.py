@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-import db, models, schemas
+from user_service import db, models, schemas
 
 app = FastAPI(title="User Service")
 
