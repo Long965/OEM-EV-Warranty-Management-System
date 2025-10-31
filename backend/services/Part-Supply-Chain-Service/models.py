@@ -2,7 +2,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from .database import Base
+from .db import Base
 
 class SparePart(Base):
     __tablename__ = "spare_parts"
