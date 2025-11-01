@@ -1,4 +1,5 @@
 version: "3.9"
+
 services:
   warranty-claim-service:
     build: ./backend/warranty-claim-service
@@ -6,15 +7,16 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - DB_URL=postgresql://postgres:password@db:5432/warranty_db
+      - DB_URL=mysql+pymysql://root:long1234@warranty-mysql:3306/warranty_claim_service
     depends_on:
       - db
 
   db:
-    image: postgres:15
-    container_name: warranty-db
+    image: mysql:8.0
+    container_name: warranty-mysql
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: warranty_db
+      MYSQL_ROOT_PASSWORD: long1234
+      MYSQL_DATABASE: warranty_claim_service
     ports:
-      - "5433:5432"
+      - "3307:3306"   # host:container
+

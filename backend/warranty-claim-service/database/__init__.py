@@ -3,12 +3,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-DB_URL = os.getenv("DB_URL", "postgresql://postgres:password@db:5432/warranty_db")
+# Kết nối MySQL
+DB_URL = os.getenv("DB_URL", "mysql+pymysql://root:long1234@warranty-mysql:3306/warranty_claim_service")
 
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
+Base = declarative_base()  
 def get_db():
     db = SessionLocal()
     try:
