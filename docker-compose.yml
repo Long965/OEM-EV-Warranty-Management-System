@@ -11,6 +11,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   auth_service:
     build: ./auth_service
@@ -19,6 +20,7 @@ services:
     environment:
       - DATABASE_URL=mysql+pymysql://root:long12345@mysql:3306/ev_warranty_db
       - JWT_SECRET=super-secret-key
+      - USER_SERVICE_URL=http://user_service:8002
     depends_on:
       - mysql
 
