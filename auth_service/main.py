@@ -1,6 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import db, models, schemas, utils, jwt_handler
+import requests, os
+
+USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user_service:8002")
 
 app = FastAPI(title="Auth Service")
 
@@ -29,7 +32,19 @@ def register(payload: schemas.RegisterIn, db: Session = Depends(db.get_db)):
     )
     db.add(new_user)
     db.commit()
-    return {"message": f"User '{payload.username}' registered as {payload.role_name}"}
+    db.refresh(new_user)
+
+    # Nếu có profile, gửi sang User Service
+    if hasattr(payload, "profile") and payload.profile:
+        try:
+            requests.post(f"{USER_SERVICE_URL}/profiles", json={
+                "user_id": new_user.user_id,
+                **payload.profile
+            })
+        except Exception as e:
+            print("⚠️ Không thể tạo profile:", e)
+
+    return {"message": f"User '{payload.username}' registered successfully"}
 
 @app.post("/login", response_model=schemas.TokenOut)
 def login(payload: schemas.LoginIn, db: Session = Depends(db.get_db)):
