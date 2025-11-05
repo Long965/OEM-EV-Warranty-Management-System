@@ -1,50 +1,69 @@
+version: "3.9"
 
 services:
-  # API Gateway (reverse proxy)
+  # 🔹 NGINX Gateway (reverse proxy)
   gateway:
     image: nginx:alpine
     container_name: api-gateway
     ports:
-      - "8000:80"
+      - "8000:80"   # Truy cập http://localhost:8000
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - fastapi
+    networks:
+      - app_net
 
-  # FASTAPI Backend
+  # 🔹 FASTAPI Backend
   fastapi:
     build: .
     container_name: fastapi-service
-    ports:
-      - "8001:8001"
-    volumes:
-      - .:/app
+    working_dir: /app
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
-      - DB_URL=mysql+pymysql://root:root@mysql:3306/warehouse_management
-      - REDIS_URL=redis://redis:6379/0
+      - DB_URL=mysql+pymysql://root:root@mysql-db:3306/warehouse_management
+      - REDIS_URL=redis://redis-cache:6379/0
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app:rw
+    expose:
+      - "8000"
     depends_on:
-      - mysql
-      - redis
+      - mysql-db
+      - redis-cache
+    restart: on-failure
+    networks:
+      - app_net
 
-  # MYSQL Database
-  mysql:
+  # 🔹 MYSQL Database
+  mysql-db:
     image: mysql:8.0
     container_name: mysql-db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: warehouse_management
+      TZ: Asia/Ho_Chi_Minh
     ports:
       - "3308:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    networks:
+      - app_net
 
-  # REDIS Cache
-  redis:
+  # 🔹 REDIS Cache
+  redis-cache:
     image: redis:7.0
     container_name: redis-cache
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
+    networks:
+      - app_net
 
 volumes:
   mysql-data:
+
+networks:
+  app_net:
+    driver: bridge
