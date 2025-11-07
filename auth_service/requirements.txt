@@ -9,3 +9,5 @@ email-validator
 pydantic[email]
 cryptography
 requests
+PyJWT>=2.8.0
+python-dotenv

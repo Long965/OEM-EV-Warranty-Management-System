@@ -1,8 +1,10 @@
-# replace function signatures to use `session` not `db`
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from auth_service import db, models, schemas, utils, jwt_handler
-import requests, os
+from shared import db
+from auth_service import models, schemas, utils, jwt_handler
+import os
+import requests
+
 
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user_service:8002")
 app = FastAPI(title="Auth Service")

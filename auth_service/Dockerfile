@@ -1,13 +1,14 @@
 FROM python:3.10-slim
 
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+COPY auth_service/requirements.txt /tmp/requirements-auth.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-auth.txt
 RUN pip install cryptography pymysql
 
-COPY . .
+COPY auth_service/ /app/auth_service/
+COPY shared/ /app/shared/
 
-# Thêm dòng này để Python hiểu /app là module root
 ENV PYTHONPATH=/app
 
 EXPOSE 8001
