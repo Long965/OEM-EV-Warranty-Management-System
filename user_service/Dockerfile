@@ -2,10 +2,11 @@ FROM python:3.10-slim
 
 WORKDIR /app/user_service
 
-COPY requirements.txt /app/user_service/
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . /app/user_service
+COPY . .
 
 EXPOSE 8002
-CMD ["python", "main.py"]
+
+CMD ["uvicorn", "user_service.main:app", "--host", "0.0.0.0", "--port", "8002"]

@@ -3,9 +3,9 @@ uvicorn
 sqlalchemy
 pymysql
 bcrypt
+passlib[bcrypt]
 python-jose
 email-validator
 pydantic[email]
 cryptography
 requests
-passlib[bcrypt]
