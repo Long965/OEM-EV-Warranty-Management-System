@@ -12,6 +12,11 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   auth_service:
     build: ./auth_service
@@ -22,7 +27,13 @@ services:
       - JWT_SECRET=super-secret-key
       - USER_SERVICE_URL=http://user_service:8002
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   user_service:
     build: ./user_service
@@ -31,7 +42,8 @@ services:
     environment:
       - DATABASE_URL=mysql+pymysql://root:long12345@mysql:3306/ev_warranty_db
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
   gateway:
     build: ./gateway
@@ -42,8 +54,10 @@ services:
       - USER_SERVICE_URL=http://user_service:8002
       - JWT_SECRET=super-secret-key
     depends_on:
-      - auth_service
-      - user_service
+      auth_service:
+        condition: service_healthy
+      user_service:
+        condition: service_started
 
 volumes:
   mysql_data:
