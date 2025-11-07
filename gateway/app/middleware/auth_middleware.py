@@ -17,7 +17,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if any(path.startswith(p) for p in self.exempt_paths):
             return await call_next(request)
 
-        # ✅ 3️⃣ Kiểm tra Authorization header
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             raise HTTPException(status_code=401, detail="Missing Authorization header")
