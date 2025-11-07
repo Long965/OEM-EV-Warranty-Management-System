@@ -3,3 +3,4 @@ uvicorn
 sqlalchemy
 pymysql
 pydantic
+bcrypt==3.2.2  # ✅ fix version to avoid AttributeError
