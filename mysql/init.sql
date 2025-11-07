@@ -48,16 +48,3 @@ INSERT IGNORE INTO roles (role_name, description) VALUES
 ('SC_Staff', 'Service Center Staff'),
 ('SC_Technician', 'Service Center Technician'),
 ('EVM_Staff', 'Electric Vehicle Manufacturer Staff');
-
--- ===== DEFAULT ADMIN USER =====
--- Password = admin123
--- Hash được tạo bằng passlib[bcrypt]
--- Bạn có thể xác thực bằng JSON: {"username": "admin", "password": "admin123"}
-
-INSERT IGNORE INTO users (username, password_hash, email, role_id)
-VALUES (
-    'admin',
-    '$2b$12$9sHz1U1y6xTiy4JZ3CMZQO0b5EB2.ahHjG5OFOFXdG.LzI9S44OZm', -- bcrypt hash of "admin123"
-    'admin@example.com',
-    (SELECT role_id FROM roles WHERE role_name = 'Admin')
-);

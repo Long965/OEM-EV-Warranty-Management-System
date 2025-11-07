@@ -43,7 +43,6 @@ def get_user(user_id: int, request: Request, db: Session = Depends(get_db)):
 
     return user
 
-
 @app.put("/users/{user_id}")
 def update_user(user_id: int, payload: schemas.UserUpdate, request: Request, db: Session = Depends(get_db)):
     user_payload = get_user_from_request(request)
@@ -66,7 +65,6 @@ def update_user(user_id: int, payload: schemas.UserUpdate, request: Request, db:
     db.refresh(user)
     return {"message": "User updated successfully", "user": user}
 
-
 @app.delete("/users/{user_id}")
 def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     user_payload = get_user_from_request(request)
@@ -80,3 +78,48 @@ def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     db.delete(user)
     db.commit()
     return {"message": f"User {user.username} deleted successfully"}
+
+@app.post("/profiles")
+def create_profile(payload: schemas.UserProfileCreate, db: Session = Depends(get_db)):
+    existing = db.query(models.UserProfile).filter_by(user_id=payload.user_id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Profile already exists for this user")
+
+    new_profile = models.UserProfile(**payload.dict())
+    db.add(new_profile)
+    db.commit()
+    db.refresh(new_profile)
+    return {"message": "Profile created successfully", "profile": new_profile}
+
+
+@app.get("/profiles/{user_id}")
+def get_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user_payload = get_user_from_request(request)
+    profile = db.query(models.UserProfile).filter_by(user_id=user_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # chỉ admin hoặc chính chủ mới được xem
+    if user_payload["role"] != "Admin" and user_payload["sub"] != profile.user.username:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return profile
+
+
+@app.put("/profiles/{user_id}")
+def update_profile(user_id: int, payload: schemas.UserProfileBase, request: Request, db: Session = Depends(get_db)):
+    user_payload = get_user_from_request(request)
+    profile = db.query(models.UserProfile).filter_by(user_id=user_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # chỉ admin hoặc chính chủ được chỉnh sửa
+    if user_payload["role"] != "Admin" and user_payload["sub"] != profile.user.username:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(profile, field, value)
+
+    db.commit()
+    db.refresh(profile)
+    return {"message": "Profile updated successfully", "profile": profile}

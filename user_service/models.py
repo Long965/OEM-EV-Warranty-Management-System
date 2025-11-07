@@ -19,3 +19,17 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     role = relationship("Role")
+    
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+    profile_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False)
+    full_name = Column(String(100))
+    phone = Column(String(20))
+    address = Column(String(255))
+    department = Column(String(100))
+    position = Column(String(100))
+    is_active = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
