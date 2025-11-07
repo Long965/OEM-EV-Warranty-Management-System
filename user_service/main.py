@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from user_service import db, models, schemas
+from user_service import  db, models, schemas
 from user_service.middleware.auth_middleware import AuthMiddleware
 
 

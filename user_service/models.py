@@ -1,9 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from user_service import db
-
-Base = db.Base
+from user_service.db import Base # type: ignore
 
 class Role(Base):
     __tablename__ = "roles"
