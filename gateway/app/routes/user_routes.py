@@ -29,17 +29,17 @@ async def delete_user(user_id: int, request: Request):
     """Delete user by ID"""
     return await forward_request(request, f"{USER_SERVICE_URL}/users/{user_id}")
 
-@router.post("/profiles")
+@router.post("/users/profiles")
 async def create_profile(request: Request):
     """Create a user profile"""
     return await forward_request(request, f"{USER_SERVICE_URL}/profiles")
 
-@router.get("/profiles/{user_id}")
+@router.get("/users/profiles/{user_id}")
 async def get_profile(user_id: int, request: Request):
     """Get a user profile"""
     return await forward_request(request, f"{USER_SERVICE_URL}/profiles/{user_id}")
 
-@router.put("/profiles/{user_id}")
+@router.put("/users/profiles/{user_id}")
 async def update_profile(user_id: int, request: Request):
     """Update a user profile"""
     return await forward_request(request, f"{USER_SERVICE_URL}/profiles/{user_id}")

@@ -79,7 +79,7 @@ def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"User {user.username} deleted successfully"}
 
-@app.post("/profiles")
+@app.post("/users/profiles")
 def create_profile(payload: schemas.UserProfileCreate, db: Session = Depends(get_db)):
     existing = db.query(models.UserProfile).filter_by(user_id=payload.user_id).first()
     if existing:
@@ -91,7 +91,7 @@ def create_profile(payload: schemas.UserProfileCreate, db: Session = Depends(get
     db.refresh(new_profile)
     return {"message": "Profile created successfully", "profile": new_profile}
 
-@app.get("/profiles/{user_id}")
+@app.get("/users/profiles/{user_id}")
 def get_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
     user_payload = get_user_from_request(request)
     profile = db.query(models.UserProfile).filter_by(user_id=user_id).first()
@@ -105,7 +105,7 @@ def get_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
     return profile
 
 
-@app.put("/profiles/{user_id}")
+@app.put("/users/profiles/{user_id}")
 def update_profile(user_id: int, payload: schemas.UserProfileBase, request: Request, db: Session = Depends(get_db)):
     user_payload = get_user_from_request(request)
     profile = db.query(models.UserProfile).filter_by(user_id=user_id).first()
