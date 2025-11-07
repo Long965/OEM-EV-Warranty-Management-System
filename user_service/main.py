@@ -91,7 +91,6 @@ def create_profile(payload: schemas.UserProfileCreate, db: Session = Depends(get
     db.refresh(new_profile)
     return {"message": "Profile created successfully", "profile": new_profile}
 
-
 @app.get("/profiles/{user_id}")
 def get_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
     user_payload = get_user_from_request(request)
