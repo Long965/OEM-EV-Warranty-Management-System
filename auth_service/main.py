@@ -14,11 +14,11 @@ def register(payload: schemas.RegisterIn, session: Session = Depends(db.get_db))
     # replace all occurrences of db.query(...) by session.query(...)
     allowed_roles = ["SC_Staff", "SC_Technician", "EVM_Staff"]
 
-    if payload.role_name == "Admin":
-        raise HTTPException(status_code=403, detail="Cannot register as Admin")
+   # if payload.role_name == "Admin":
+   #    raise HTTPException(status_code=403, detail="Cannot register as Admin")
 
-    if payload.role_name not in allowed_roles:
-        raise HTTPException(status_code=400, detail="Invalid role")
+   # if payload.role_name not in allowed_roles:
+    #    raise HTTPException(status_code=400, detail="Invalid role")
 
     role = session.query(models.Role).filter_by(role_name=payload.role_name).first()
     if not role:
