@@ -1,21 +1,23 @@
+# user_service/middleware/auth_middleware.py (simplified)
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-import jwt, os
-
-JWT_SECRET = os.getenv("JWT_SECRET", "default-secret")
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # allow public endpoints as needed (e.g., health)
         auth = request.headers.get("Authorization")
-        if not auth or not auth.startswith("Bearer "):
+        if not auth:
             request.state.user = None
             return await call_next(request)
 
-        token = auth.split(" ")[1]
+        # do not decode here if gateway already validated; 
+        # but keep token payload for convenience:
         try:
-            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-            request.state.user = payload  # chứa username & role
+            token = auth.split(" ")[1] if " " in auth else auth
+            # Optionally decode here - keep as-is or remove
+            import jwt, os
+            payload = jwt.decode(token, os.getenv("JWT_SECRET", "default-secret"), algorithms=["HS256"])
+            request.state.user = payload
         except Exception:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-
+            request.state.user = None
         return await call_next(request)
