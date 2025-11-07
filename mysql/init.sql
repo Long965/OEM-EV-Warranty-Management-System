@@ -1,6 +1,8 @@
 CREATE DATABASE IF NOT EXISTS ev_warranty_db;
 USE ev_warranty_db;
 
+-- ===== TABLES =====
+
 CREATE TABLE IF NOT EXISTS roles (
     role_id INT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(50) UNIQUE NOT NULL,
@@ -39,8 +41,23 @@ CREATE TABLE IF NOT EXISTS tokens (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
+-- ===== INITIAL DATA =====
+
 INSERT IGNORE INTO roles (role_name, description) VALUES
 ('Admin', 'System administrator'),
 ('SC_Staff', 'Service Center Staff'),
 ('SC_Technician', 'Service Center Technician'),
 ('EVM_Staff', 'Electric Vehicle Manufacturer Staff');
+
+-- ===== DEFAULT ADMIN USER =====
+-- Password = admin123
+-- Hash được tạo bằng passlib[bcrypt]
+-- Bạn có thể xác thực bằng JSON: {"username": "admin", "password": "admin123"}
+
+INSERT IGNORE INTO users (username, password_hash, email, role_id)
+VALUES (
+    'admin',
+    '$2b$12$9sHz1U1y6xTiy4JZ3CMZQO0b5EB2.ahHjG5OFOFXdG.LzI9S44OZm', -- bcrypt hash of "admin123"
+    'admin@example.com',
+    (SELECT role_id FROM roles WHERE role_name = 'Admin')
+);
