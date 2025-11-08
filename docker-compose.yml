@@ -1,0 +1,83 @@
+
+services:
+  # ⚙️ Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oem_ev_warranty_backend
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DB_URL: mysql+pymysql://root:root@mysql-db:3306/warehouse_management
+      REDIS_URL: redis://redis-cache:6379/0
+      PYTHONPATH: /app
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - app_net
+
+  # 🗄️ MYSQL Database
+  mysql-db:
+    image: mysql:8.0
+    container_name: oem_ev_warranty_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: warehouse_management
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - app_net
+
+  # 🚀 REDIS Cache
+  redis-cache:
+    image: redis:7.0
+    container_name: oem_ev_warranty_redis
+    expose:
+      - "6379"
+    networks:
+      - app_net
+
+  # 💻 Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: oem_ev_warranty_frontend
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_BASE=http://backend:8000
+    stdin_open: true
+    tty: true
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - app_net
+
+volumes:
+  mysql-data:
+
+networks:
+  app_net:
+    driver: bridge
