@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:long12345@mysql:3306/ev_warranty_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:long1234@mysql:3306/ev_warranty_db")
 
 # Tạo engine (pool_pre_ping để tránh lỗi connection stale)
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
