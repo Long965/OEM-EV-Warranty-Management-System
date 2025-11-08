@@ -11,7 +11,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -20,8 +20,10 @@ services:
 
   auth_service:
     build:
-      context: .                    # <-- project root context
-      dockerfile: ./auth_service/Dockerfile
+      context: ./backend
+      dockerfile: auth_service/Dockerfile
+    volumes:
+      - ./backend/shared:/app/shared
     ports:
       - "8001:8001"
     environment:
@@ -39,8 +41,10 @@ services:
 
   user_service:
     build:
-      context: .
-      dockerfile: ./user_service/Dockerfile
+      context: ./backend
+      dockerfile: user_service/Dockerfile
+    volumes:
+      - ./backend/shared:/app/shared
     ports:
       - "8002:8002"
     environment:
@@ -51,9 +55,13 @@ services:
         condition: service_healthy
 
   gateway:
-    build: ./gateway
+    build:
+      context: ./backend          
+      dockerfile: gateway/Dockerfile
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend/shared:/app/shared
     environment:
       - AUTH_SERVICE_URL=http://auth_service:8001
       - USER_SERVICE_URL=http://user_service:8002
