@@ -24,5 +24,6 @@ class WarrantyUpload(Base):
     created_by = Column(CHAR(36), nullable=False)
     approved_by = Column(CHAR(36), nullable=True)
     status = Column(Enum(UploadStatus), default=UploadStatus.draft)
+    reject_reason = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, onupdate=func.now())

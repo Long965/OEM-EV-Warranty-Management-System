@@ -16,9 +16,15 @@ class WarrantyUploadCreate(BaseModel):
     diagnosis: Optional[str]
     file_url: Optional[str]
 
+class WarrantyUploadReject(BaseModel):
+    reason: str
+
 class WarrantyUploadResponse(WarrantyUploadCreate):
     id: uuid.UUID
     status: UploadStatus
+    created_by: uuid.UUID
+    approved_by: Optional[uuid.UUID]
+    reject_reason: Optional[str]
 
     class Config:
         from_attributes = True

@@ -16,8 +16,11 @@ services:
       - "8083:8083"
     environment:
       - DB_URL=mysql+pymysql://root:long1234@warranty-mysql:3306/warranty_claim_service
+      - CLAIM_SERVICE_URL=http://warranty-claim-service:8083/claims
     depends_on:
       - warranty-mysql
+    volumes:
+      - ./backend/warranty-upload-service/uploads:/app/uploads
 
   warranty-mysql:
     image: mysql:8.0
@@ -94,3 +97,5 @@ services:
 
 volumes:
   mysql_data:
+
+
