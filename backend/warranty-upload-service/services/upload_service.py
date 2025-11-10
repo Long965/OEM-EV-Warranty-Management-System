@@ -3,9 +3,7 @@ from models.upload_model import WarrantyUpload, UploadStatus
 from models.schema import WarrantyUploadCreate
 import uuid, requests, os
 
-
-CLAIM_SERVICE_URL = os.getenv("CLAIM_SERVICE_URL", "http://warranty-claim-service:8083/claims")
-
+CLAIM_SERVICE_URL = os.getenv("CLAIM_SERVICE_URL", "http://warranty-claim-service:8082/claims")
 
 def create_upload(db: Session, data: WarrantyUploadCreate, user_id: uuid.UUID):
     upload = WarrantyUpload(
@@ -21,26 +19,16 @@ def create_upload(db: Session, data: WarrantyUploadCreate, user_id: uuid.UUID):
     db.refresh(upload)
     return upload
 
-
 def submit_upload(db: Session, upload_id: str):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload:
         return None
+
     upload.status = UploadStatus.submitted
     db.commit()
     db.refresh(upload)
-    return upload
 
-
-def approve_upload(db: Session, upload_id: str, approver_id: str):
-    upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
-    if not upload:
-        return None
-    upload.status = UploadStatus.approved
-    upload.approved_by = approver_id
-    db.commit()
-    db.refresh(upload)
-
+    # Gửi sang Claim Service
     try:
         payload = {
             "vehicle_vin": upload.vin,
@@ -51,23 +39,12 @@ def approve_upload(db: Session, upload_id: str, approver_id: str):
         }
         requests.post(CLAIM_SERVICE_URL, json=payload, timeout=5)
     except Exception as e:
-        print(f"[WARN] Không thể sync sang WarrantyClaimService: {e}")
+        print(f"[WARN] Không thể sync sang Claim Service: {e}")
 
     return upload
 
 
-def reject_upload(db: Session, upload_id: str, reason: str, approver_id: str):
-    upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
-    if not upload:
-        return None
-    upload.status = UploadStatus.rejected
-    upload.reject_reason = reason
-    upload.approved_by = approver_id
-    db.commit()
-    db.refresh(upload)
-    return upload
-
-
+# 3️⃣ Lấy danh sách phiếu
 def list_uploads(db: Session, created_by: str = None):
     query = db.query(WarrantyUpload)
     if created_by:
