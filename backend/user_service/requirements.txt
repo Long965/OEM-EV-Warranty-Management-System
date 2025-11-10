@@ -3,4 +3,5 @@ uvicorn
 sqlalchemy
 pymysql
 pydantic
+pydantic[email]
 bcrypt==3.2.2  

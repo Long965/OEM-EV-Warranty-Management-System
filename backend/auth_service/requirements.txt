@@ -3,12 +3,11 @@ uvicorn
 sqlalchemy
 pymysql
 bcrypt
-python-jose
 email-validator
 pydantic[email]
 cryptography
 requests
 PyJWT>=2.8.0
-bcrypt==3.2.2  # ✅ fix version to avoid AttributeError
+bcrypt==3.2.2  
 passlib[bcrypt]==1.7.4
 python-dotenv
