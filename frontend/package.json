@@ -41,12 +41,6 @@
     "eject": "react-scripts eject",
     "install:clean": "rm -rf node_modules/ && rm -rf package-lock.json && npm install && npm start"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -72,5 +66,12 @@
   },
   "overrides": {
     "svgo": "3.0.2"
+  },
+  "eslintConfig": {
+  "extends": ["react-app", "react-app/jest"],
+  "rules": {
+    "prettier/prettier": "off"
   }
+}
+
 }

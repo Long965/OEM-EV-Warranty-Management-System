@@ -13,10 +13,12 @@ class Part(Base):
     price = Column(Float, nullable=True)               # ✅ thêm
     description = Column(Text, nullable=True)          # ✅ thêm
 
+
     # FK liên kết đến suppliers.id
     supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True)
     supplier = relationship("Supplier", back_populates="parts")
     inventory_items = relationship("Inventory", back_populates="part")
     assignments = relationship("Assignment", back_populates="part")
+
 
 

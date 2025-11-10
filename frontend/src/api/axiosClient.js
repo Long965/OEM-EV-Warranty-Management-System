@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-  baseURL: "http://backend:8000/docs", // Tên service backend trong docker-compose
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8000",
 });
 
 export default axiosClient;

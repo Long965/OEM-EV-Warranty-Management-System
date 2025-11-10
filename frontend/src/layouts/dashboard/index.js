@@ -1,161 +1,103 @@
-// @mui material components
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Grid from "@mui/material/Grid";
-import Icon from "@mui/material/Icon";
-
-// Material Dashboard 2 React components
+import Card from "@mui/material/Card";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
 import MDBox from "components/MDBox";
-
-// Material Dashboard 2 React example components
+import MDTypography from "components/MDTypography";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
-import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
-import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
-import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 
-// Data
-import reportsBarChartData from "layouts/dashboard/data/reportsBarChartData";
-import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
+export default function Allocations() {
+  const [parts, setParts] = useState([]);
+  const [partId, setPartId] = useState("");
+  const [center, setCenter] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [message, setMessage] = useState("");
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-// Dashboard components
-import Projects from "layouts/dashboard/components/Projects";
-import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
+  useEffect(() => {
+    axios.get(`${API_URL}/parts`).then((res) => setParts(res.data));
+  }, []);
 
-function Dashboard() {
-  const { sales, tasks } = reportsLineChartData;
+  const handleAllocate = async () => {
+    if (!partId || !center || !quantity) {
+      setMessage("Vui lòng nhập đủ thông tin!");
+      return;
+    }
+    try {
+      await axios.post(`${API_URL}/allocations`, null, {
+        params: { part_id: partId, service_center: center, quantity: parseInt(quantity) },
+      });
+      setMessage("✅ Phân bổ thành công!");
+    } catch {
+      setMessage("❌ Lỗi khi phân bổ phụ tùng!");
+    }
+  };
 
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      <MDBox py={3}>
-        {/* === TOP STATISTIC CARDS === */}
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                color="info"
-                icon="build"
-                title="Tổng phụ tùng"
-                count={128}
-                percentage={{
-                  color: "success",
-                  amount: "+5%",
-                  label: "so với tháng trước",
-                }}
-              />
-            </MDBox>
-          </Grid>
-
-          <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                color="dark"
-                icon="factory"
-                title="Nhà cung cấp"
-                count={12}
-                percentage={{
-                  color: "success",
-                  amount: "+2",
-                  label: "mới trong tháng",
-                }}
-              />
-            </MDBox>
-          </Grid>
-
-          <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                color="success"
-                icon="warehouse"
-                title="Tổng kho hàng"
-                count="3"
-                percentage={{
-                  color: "info",
-                  amount: "",
-                  label: "Hà Nội / HCM / Đà Nẵng",
-                }}
-              />
-            </MDBox>
-          </Grid>
-
-          <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                color="error"
-                icon="warning"
-                title="Cảnh báo tồn kho"
-                count="5"
-                percentage={{
-                  color: "error",
-                  amount: "",
-                  label: "cần nhập gấp",
-                }}
-              />
-            </MDBox>
+      <MDBox pt={6} pb={3}>
+        <Grid container justifyContent="center">
+          <Grid item xs={12} md={8}>
+            <Card sx={{ p: 3 }}>
+              <MDTypography variant="h6" mb={2}>
+                Phân bổ phụ tùng cho trung tâm dịch vụ
+              </MDTypography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="-- Chọn phụ tùng --"
+                    SelectProps={{ native: true }}
+                    value={partId}
+                    onChange={(e) => setPartId(e.target.value)}
+                  >
+                    <option value=""></option>
+                    {parts.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    label="Trung tâm dịch vụ"
+                    fullWidth
+                    value={center}
+                    onChange={(e) => setCenter(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    label="Số lượng"
+                    type="number"
+                    fullWidth
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button variant="contained" color="info" onClick={handleAllocate}>
+                    Xác nhận phân bổ
+                  </Button>
+                </Grid>
+              </Grid>
+              {message && (
+                <MDTypography color="secondary" mt={2}>
+                  {message}
+                </MDTypography>
+              )}
+            </Card>
           </Grid>
         </Grid>
-
-        {/* === CHARTS SECTION === */}
-        <MDBox mt={4.5}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6} lg={4}>
-              <MDBox mb={3}>
-                <ReportsBarChart
-                  color="info"
-                  title="Tồn kho theo kho"
-                  description="Số lượng phụ tùng hiện có"
-                  date="Cập nhật hôm nay"
-                  chart={reportsBarChartData}
-                />
-              </MDBox>
-            </Grid>
-
-            <Grid item xs={12} md={6} lg={4}>
-              <MDBox mb={3}>
-                <ReportsLineChart
-                  color="success"
-                  title="Xuất / Nhập kho"
-                  description={
-                    <>
-                      (<strong>+15%</strong>) tăng trong tháng này
-                    </>
-                  }
-                  date="Cập nhật 5 phút trước"
-                  chart={sales}
-                />
-              </MDBox>
-            </Grid>
-
-            <Grid item xs={12} md={6} lg={4}>
-              <MDBox mb={3}>
-                <ReportsLineChart
-                  color="dark"
-                  title="Hiệu suất kỹ thuật viên"
-                  description="Số phụ tùng gắn theo ngày"
-                  date="Cập nhật tự động"
-                  chart={tasks}
-                />
-              </MDBox>
-            </Grid>
-          </Grid>
-        </MDBox>
-
-        {/* === LATEST ALERTS AND PROJECTS === */}
-        <MDBox>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6} lg={8}>
-              <Projects title="Danh sách phụ tùng sắp hết" />
-            </Grid>
-
-            <Grid item xs={12} md={6} lg={4}>
-              <OrdersOverview title="Cảnh báo mới nhất" />
-            </Grid>
-          </Grid>
-        </MDBox>
       </MDBox>
       <Footer />
     </DashboardLayout>
   );
 }
-
-export default Dashboard;
