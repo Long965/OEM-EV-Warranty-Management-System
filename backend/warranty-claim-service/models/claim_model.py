@@ -3,7 +3,7 @@ from sqlalchemy.sql import func
 import enum
 from database import Base
 
-
+# ---------------- ENUM TRẠNG THÁI ----------------
 class ClaimStatus(str, enum.Enum):
     draft = "Draft"
     submitted = "Submitted"
@@ -11,7 +11,7 @@ class ClaimStatus(str, enum.Enum):
     rejected = "Từ chối"
     completed = "Completed"
 
-
+# ---------------- BẢNG CHÍNH: WARRANTY_CLAIM ----------------
 class WarrantyClaim(Base):
     __tablename__ = "warranty_claim"
 
@@ -21,27 +21,23 @@ class WarrantyClaim(Base):
     issue_desc = Column(Text)
     diagnosis_report = Column(Text)
     attachments = Column(JSON)
-
-    # 💰 Giá tiền
-    estimated_cost = Column(Numeric(12, 2), nullable=True)  # user nhập
-    approved_cost = Column(Numeric(12, 2), nullable=True)   # admin duyệt
-
     status = Column(Enum(ClaimStatus), default=ClaimStatus.draft)
     created_by = Column(String(36), nullable=True)
     approved_by = Column(String(36), nullable=True)
-
+    warranty_cost = Column(Numeric(12, 2))
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, onupdate=func.now())
 
-
+# ---------------- BẢNG LỊCH SỬ: WARRANTY_CLAIM_HISTORY ----------------
 class ClaimHistory(Base):
     __tablename__ = "warranty_claim_history"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    claim_id = Column(Integer, ForeignKey("warranty_claim.id"), nullable=True)
+    # ⚙ Dùng ON DELETE SET NULL để vẫn giữ lịch sử sau khi claim bị xóa
+    claim_id = Column(Integer, ForeignKey("warranty_claim.id", ondelete="SET NULL"), nullable=True)
     vehicle_vin = Column(String(50))
     issue_desc = Column(Text)
-    action = Column(String(100))  # mô tả chi tiết hành động
+    action = Column(String(50))
     performed_by = Column(String(36))
     performed_role = Column(String(20))
     timestamp = Column(TIMESTAMP, server_default=func.now())
