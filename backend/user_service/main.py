@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from shared import db
 from user_service import models, schemas
 from user_service.middleware.auth_middleware import AuthMiddleware
+from passlib.context import CryptContext
 
 app = FastAPI(title="User Service")
 app.add_middleware(AuthMiddleware)
@@ -16,10 +17,18 @@ def get_db():
 
 
 def get_user_from_request(request: Request):
-    if not request.state.user:
+    if not getattr(request.state, "auth_header", None):
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return request.state.user
+    # Giả sử Gateway đã kiểm tra token hợp lệ, ta có thể đọc payload nếu cần
+    import jwt, os
+    token = request.state.auth_header.split(" ")[1]
+    payload = jwt.decode(token, os.getenv("JWT_SECRET", "super-secret-key"), algorithms=["HS256"])
+    return payload
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
 
 @app.get("/users")
 def get_all_users(request: Request, db: Session = Depends(get_db)):
@@ -28,6 +37,53 @@ def get_all_users(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Only Admin can view all users")
 
     return db.query(models.User).all()
+
+@app.post("/users")
+def create_user(payload: schemas.UserCreate, request: Request, db: Session = Depends(get_db)):
+    user_payload = get_user_from_request(request)
+
+    # Chỉ Admin được phép tạo user mới
+    if user_payload["role"] != "Admin":
+        raise HTTPException(status_code=403, detail="Only Admin can create users")
+
+    # Kiểm tra username trùng
+    if db.query(models.User).filter_by(username=payload.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    # Kiểm tra role tồn tại
+    role = db.query(models.Role).filter_by(role_id=payload.role_id).first()
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+
+    # Tạo user
+    hashed_password = hash_password(payload.password)
+    new_user = models.User(
+        username=payload.username,
+        password_hash=hashed_password,  # cần hash trước ở frontend hoặc gửi hash qua auth_service
+        email=payload.email,
+        full_name=payload.full_name,
+        phone=payload.phone,
+        gender=payload.gender,
+        role_id=payload.role_id
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    new_profile = models.UserProfile(
+        user_id=new_user.user_id,
+        username=new_user.username,
+        full_name=new_user.full_name,
+        phone=None,
+        address=None,
+        gender=None,
+        position=role.role_name,
+        is_active=True
+    )
+    db.add(new_profile)
+    db.commit()
+
+    return {"message": f"User '{new_user.username}' created successfully", "user_id": new_user.user_id}
 
 
 @app.get("/users/{user_id}")

@@ -13,3 +13,9 @@ async def login_proxy(request: Request):
 async def register_proxy(request: Request):
     """Forward register request to Auth Service"""
     return await forward_request(request, f"{AUTH_SERVICE_URL}/register")
+
+
+@router.post("/logout")
+async def logout_proxy(request: Request):
+    """Forward logout request to Auth Service"""
+    return await forward_request(request, f"{AUTH_SERVICE_URL}/logout")

@@ -11,7 +11,7 @@ class UserBase(BaseModel):
     gender: Optional[str] = None
 
 class UserCreate(UserBase):
-    password_hash: str
+    password: str
 
 class UserUpdate(BaseModel):
     username: Optional[str]
