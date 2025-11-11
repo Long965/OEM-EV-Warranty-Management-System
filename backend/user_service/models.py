@@ -35,14 +35,8 @@ class User(Base):
 
     # Relationships
     role = relationship("Role", back_populates="users")
-    
-    # Quan hệ tokens đã được loại bỏ (vì đã chuyển sang Auth Service)
-    
-    # Quan hệ profile vẫn giữ lại (đã sửa ở bước trước)
-    profile = relationship("UserProfile", uselist=False, back_populates="user")
-
-
-# Class Token đã được loại bỏ khỏi file này
+        
+    profile = relationship("UserProfile", uselist=False, back_populates="user", cascade="all, delete")
 
 
 class UserProfile(Base):

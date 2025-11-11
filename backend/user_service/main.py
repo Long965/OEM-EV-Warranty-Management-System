@@ -1,9 +1,29 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from shared import db
 from user_service import models, schemas
 from user_service.middleware.auth_middleware import AuthMiddleware
 from passlib.context import CryptContext
+import jwt, os
+import sys
+
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+try:
+    from auth_service.models import Token 
+    TOKEN_MODEL_AVAILABLE = True
+    print("SUCCESS: Token model imported successfully.")
+except Exception as e:
+    class Token: pass # Class giả để tránh crash
+    TOKEN_MODEL_AVAILABLE = False
+    print(f"FATAL WARNING: Token model NOT found. Deletion skipped. Error: {e}")
+    
+# Import UserProfile từ chính models của service này
+from user_service.models import UserProfile 
+
 
 app = FastAPI(title="User Service")
 app.add_middleware(AuthMiddleware)
@@ -17,13 +37,37 @@ def get_db():
 
 
 def get_user_from_request(request: Request):
-    if not getattr(request.state, "auth_header", None):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    # Giả sử Gateway đã kiểm tra token hợp lệ, ta có thể đọc payload nếu cần
-    import jwt, os
-    token = request.state.auth_header.split(" ")[1]
-    payload = jwt.decode(token, os.getenv("JWT_SECRET", "super-secret-key"), algorithms=["HS256"])
-    return payload
+    """
+    Trích xuất và giải mã token JWT từ header Authorization 
+    được lưu trữ bởi AuthMiddleware.
+    """
+    auth_header = getattr(request.state, "auth_header", None)
+    
+    if not auth_header:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authorization header missing or not set by middleware")
+    
+    try:
+        scheme, token = auth_header.split(" ", 1)
+        
+        if scheme.lower() != "bearer" or not token:
+            raise ValueError("Invalid authentication scheme or missing token part.")
+
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token format. Expected 'Bearer <token>'."
+        )
+
+    try:
+        payload = jwt.decode(token, os.getenv("JWT_SECRET", "super-secret-key"), algorithms=["HS256"])
+        return payload
+    except jwt.exceptions.DecodeError as e:
+        # Bắt các lỗi giải mã
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid or expired token: {e}"
+        )
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -42,24 +86,20 @@ def get_all_users(request: Request, db: Session = Depends(get_db)):
 def create_user(payload: schemas.UserCreate, request: Request, db: Session = Depends(get_db)):
     user_payload = get_user_from_request(request)
 
-    # Chỉ Admin được phép tạo user mới
     if user_payload["role"] != "Admin":
         raise HTTPException(status_code=403, detail="Only Admin can create users")
 
-    # Kiểm tra username trùng
     if db.query(models.User).filter_by(username=payload.username).first():
         raise HTTPException(status_code=400, detail="Username already exists")
 
-    # Kiểm tra role tồn tại
     role = db.query(models.Role).filter_by(role_id=payload.role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
 
-    # Tạo user
     hashed_password = hash_password(payload.password)
     new_user = models.User(
         username=payload.username,
-        password_hash=hashed_password,  # cần hash trước ở frontend hoặc gửi hash qua auth_service
+        password_hash=hashed_password,
         email=payload.email,
         full_name=payload.full_name,
         phone=payload.phone,
@@ -93,7 +133,6 @@ def get_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # user chỉ được xem chính mình
     if user_payload["role"] != "Admin" and user.username != user_payload["sub"]:
         raise HTTPException(status_code=403, detail="Access denied")
 
@@ -106,7 +145,6 @@ def update_user(user_id: int, payload: schemas.UserUpdate, request: Request, db:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Admin có thể sửa bất kỳ ai, user chỉ được sửa chính mình
     if user_payload["role"] != "Admin" and user.username != user_payload["sub"]:
         raise HTTPException(status_code=403, detail="Access denied")
 
@@ -114,7 +152,7 @@ def update_user(user_id: int, payload: schemas.UserUpdate, request: Request, db:
         user.username = payload.username
     if payload.email:
         user.email = payload.email
-    if payload.role_id and user_payload["role"] == "Admin":  # chỉ admin được đổi role
+    if payload.role_id and user_payload["role"] == "Admin":
         user.role_id = payload.role_id
 
     db.commit()
@@ -131,8 +169,25 @@ def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     if user_payload["role"] != "Admin" and user.username != user_payload["sub"]:
         raise HTTPException(status_code=403, detail="Access denied")
 
+
+    if TOKEN_MODEL_AVAILABLE:
+        # Sử dụng lệnh DELETE trực tiếp trên Query
+        deleted_tokens = db.query(Token).filter(Token.user_id == user_id).delete(synchronize_session=False)
+        print(f"Tokens deleted: {deleted_tokens}")
+    else:
+        # Nếu không tìm thấy Token Model, chỉ in cảnh báo
+        print("WARNING: Skipped deleting Tokens due to model import failure. IntegrityError likely.")
+
+
+    # 2. Xóa User Profile liên quan
+    deleted_profiles = db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
+    print(f"User Profiles deleted: {deleted_profiles}")
+    
+    db.commit()
+    
     db.delete(user)
     db.commit()
+    
     return {"message": f"User {user.username} deleted successfully"}
 
 @app.post("/users/profiles")
@@ -154,7 +209,6 @@ def get_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    # chỉ admin hoặc chính chủ mới được xem
     if user_payload["role"] != "Admin" and user_payload["sub"] != profile.user.username:
         raise HTTPException(status_code=403, detail="Access denied")
 
@@ -168,7 +222,6 @@ def update_profile(user_id: int, payload: schemas.UserProfileBase, request: Requ
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    # chỉ admin hoặc chính chủ được chỉnh sửa
     if user_payload["role"] != "Admin" and user_payload["sub"] != profile.user.username:
         raise HTTPException(status_code=403, detail="Access denied")
 

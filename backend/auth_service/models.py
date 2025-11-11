@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from shared.db import Base
 
-# --- Mô hình Token (Cần thiết cho Auth Service) ---
 class Token(Base):
 
     __tablename__ = "tokens"
@@ -15,8 +14,6 @@ class Token(Base):
     expires_at = Column(DateTime)
 
     user = relationship("User", back_populates="tokens")
-# ---------------------------------------------------
-
 
 class Role(Base):
 
@@ -47,8 +44,4 @@ class User(Base):
 
     # Relationships
     role = relationship("Role", back_populates="users")
-    
-    # Đã thêm lại quan hệ tokens (cần thiết cho Auth Service)
     tokens = relationship("Token", back_populates="user", cascade="all, delete-orphan")
-    
-    # Quan hệ profile và UserProfile bị loại bỏ thành công ở bước trước
