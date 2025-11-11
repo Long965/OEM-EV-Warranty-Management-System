@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Enum, Text, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, String, Enum, Text, TIMESTAMP, Numeric
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import CHAR
 import uuid, enum
@@ -21,6 +21,10 @@ class WarrantyUpload(Base):
     description = Column(Text)
     diagnosis = Column(Text)
     file_url = Column(String(255))
+
+    # 💰 Chi phí dự kiến do nhân viên nhập
+    estimated_cost = Column(Numeric(12, 2), nullable=True)
+
     created_by = Column(CHAR(36), nullable=False)
     approved_by = Column(CHAR(36), nullable=True)
     status = Column(Enum(UploadStatus), default=UploadStatus.draft)

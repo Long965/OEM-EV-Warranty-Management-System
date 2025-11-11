@@ -11,33 +11,41 @@ from fastapi import FastAPI
 
 router = APIRouter(prefix="/uploads", tags=["Warranty Uploads"])
 
+
 # 1️⃣ Nhân viên tạo phiếu bảo hành
-@router.post("/", summary="Nhân viên tạo phiếu bảo hành")
+@router.post("/", summary="Nhân viên tạo phiếu bảo hành (có giá dự kiến)")
 def create_upload(data: WarrantyUploadCreate, db: Session = Depends(get_db)):
-    user_id = uuid.UUID("11111111-1111-1111-1111-111111111111")  # Giả lập user từ Auth Service
+    user_id = uuid.UUID("11111111-1111-1111-1111-111111111111")  # giả lập user
     upload = upload_service.create_upload(db, data, user_id)
-    return {"message": "Upload created", "upload_id": upload.id}
+    return {
+        "message": "Upload created",
+        "upload_id": upload.id,
+        "estimated_cost": float(upload.estimated_cost or 0)
+    }
 
 
-# 2️⃣ Nhân viên gửi phiếu bảo hành lên hãng (Admin)
-@router.put("/{upload_id}/submit", summary="Nhân viên gửi phiếu lên admin duyệt")
+# 2️⃣ Gửi phiếu bảo hành lên hãng
+@router.put("/{upload_id}/submit", summary="Nhân viên gửi phiếu lên admin duyệt (sync sang Claim Service)")
 def submit_upload(upload_id: str, db: Session = Depends(get_db)):
-    upload = upload_service.submit_upload(db, upload_id)
-    if not upload:
-        raise HTTPException(status_code=404, detail="Upload not found")
-    return {"message": "Submitted", "status": upload.status}
+    try:
+        upload = upload_service.submit_upload(db, upload_id)
+        if not upload:
+            raise HTTPException(status_code=404, detail="Upload not found")
+        return {"message": "Submitted", "status": upload.status}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # 3️⃣ Danh sách phiếu (lọc theo user)
 @router.get("/", summary="Danh sách phiếu của nhân viên")
 def list_uploads(created_by: str = Query(None), db: Session = Depends(get_db)):
-    uploads = upload_service.list_uploads(db, created_by)
-    return uploads
+    return upload_service.list_uploads(db, created_by)
 
 
 # -------------------- API UPLOAD FILE --------------------
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 @router.post("/files", summary="Upload file hoặc hình ảnh bảo hành (trả về URL)")
 async def upload_files(files: list[UploadFile] = File(...)):

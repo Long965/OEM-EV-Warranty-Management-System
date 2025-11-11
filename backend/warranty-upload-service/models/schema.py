@@ -3,11 +3,13 @@ from typing import Optional
 import uuid
 from enum import Enum
 
+
 class UploadStatus(str, Enum):
     draft = "Draft"
     submitted = "Submitted"
     approved = "Approved"
     rejected = "Rejected"
+
 
 class WarrantyUploadCreate(BaseModel):
     vin: str
@@ -15,9 +17,12 @@ class WarrantyUploadCreate(BaseModel):
     description: Optional[str]
     diagnosis: Optional[str]
     file_url: Optional[str]
+    estimated_cost: Optional[float] = 0.0  # 💰 chi phí dự kiến do user nhập
+
 
 class WarrantyUploadReject(BaseModel):
     reason: str
+
 
 class WarrantyUploadResponse(WarrantyUploadCreate):
     id: uuid.UUID

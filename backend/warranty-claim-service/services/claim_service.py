@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from models.claim_model import WarrantyClaim, ClaimStatus, ClaimHistory
 from models.schema import WarrantyClaimCreate
-import uuid
 
 
 def log_history(db: Session, claim: WarrantyClaim, action: str, user_id: str, role: str):
@@ -25,36 +24,44 @@ def create_claim(db: Session, data: WarrantyClaimCreate, user_id: str):
         issue_desc=data.issue_desc,
         diagnosis_report=data.diagnosis_report,
         attachments=[a.dict() for a in data.attachments or []],
+        estimated_cost=data.estimated_cost,
         created_by=user_id
     )
     db.add(claim)
     db.commit()
     db.refresh(claim)
-    log_history(db, claim, "Tạo mới phiếu", user_id, "user")
+    log_history(db, claim, f"Tạo mới phiếu (chi phí dự kiến: {data.estimated_cost}₫)", user_id, "user")
     return claim
 
 
-def update_status(db: Session, claim_id: int, status: ClaimStatus, approver_id: str = None):
+def update_status(db: Session, claim_id: int, status: ClaimStatus, approver_id: str = None, approved_cost: float = None):
     claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
     if not claim:
         return None
 
-    # Nếu admin từ chối thì lưu lịch sử rồi xóa claim
+    # Admin từ chối
     if status == ClaimStatus.rejected:
         log_history(db, claim, "Từ chối phiếu", approver_id, "admin")
         db.delete(claim)
         db.commit()
         return None
 
-    claim.status = status
-    if approver_id:
+    # Admin duyệt
+    if status == ClaimStatus.approved:
+        claim.status = status
         claim.approved_by = approver_id
+        if approved_cost is not None:
+            claim.approved_cost = approved_cost
+        db.commit()
+        db.refresh(claim)
+        log_history(db, claim, f"Duyệt phiếu (giá được duyệt: {approved_cost}₫)", approver_id, "admin")
+        return claim
 
+    # Các trạng thái khác (submit)
+    claim.status = status
     db.commit()
     db.refresh(claim)
-
-    action_text = "Duyệt phiếu" if status == ClaimStatus.approved else "Cập nhật trạng thái"
-    log_history(db, claim, action_text, approver_id or claim.created_by, "admin" if approver_id else "user")
+    log_history(db, claim, f"Cập nhật trạng thái thành {status.value}", approver_id or claim.created_by, "user")
     return claim
 
 
