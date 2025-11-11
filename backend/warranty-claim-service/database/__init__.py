@@ -3,7 +3,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Kết nối MySQL
 DB_URL = os.getenv("DB_URL", "mysql+pymysql://root:long1234@warranty-mysql:3306/warranty_claim_service")
 
 engine = create_engine(DB_URL)

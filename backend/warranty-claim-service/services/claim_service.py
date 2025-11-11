@@ -3,9 +3,7 @@ from models.claim_model import WarrantyClaim, ClaimStatus, ClaimHistory
 from models.schema import WarrantyClaimCreate
 import traceback
 
-# ---------------- LƯU LỊCH SỬ ----------------
 def log_history(db: Session, claim: WarrantyClaim, action: str, user_id: str, role: str):
-    """Ghi log lịch sử thao tác (vẫn lưu được kể cả khi claim bị xóa sau đó)"""
     try:
         history = ClaimHistory(
             claim_id=claim.id,
@@ -22,7 +20,6 @@ def log_history(db: Session, claim: WarrantyClaim, action: str, user_id: str, ro
         print("[ERROR] log_history failed:")
         traceback.print_exc()
 
-# ---------------- TẠO PHIẾU ----------------
 def create_claim(db: Session, data: WarrantyClaimCreate, user_id: str):
     claim = WarrantyClaim(
         vehicle_vin=data.vehicle_vin,
@@ -44,23 +41,19 @@ def create_claim(db: Session, data: WarrantyClaimCreate, user_id: str):
         traceback.print_exc()
         raise
 
-# ---------------- CẬP NHẬT TRẠNG THÁI ----------------
 def update_status(db: Session, claim_id: int, status: ClaimStatus, approver_id: str = None):
     claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
     if not claim:
         return None
 
     try:
-        # 🧩 Nếu admin từ chối phiếu
         if status == ClaimStatus.rejected:
             log_history(db, claim, "Từ chối phiếu", approver_id or "unknown", "admin")
 
-            # Xóa phiếu khỏi bảng chính (history vẫn giữ vì ondelete=SET NULL)
             db.delete(claim)
             db.commit()
             return None
 
-        # 🧩 Nếu cập nhật sang trạng thái khác (approved, submitted, ...)
         claim.status = status
         if approver_id:
             claim.approved_by = approver_id
@@ -78,14 +71,12 @@ def update_status(db: Session, claim_id: int, status: ClaimStatus, approver_id: 
         traceback.print_exc()
         raise
 
-# ---------------- DANH SÁCH PHIẾU ----------------
 def list_claims(db: Session, user_id: str = None, role: str = "user"):
     query = db.query(WarrantyClaim)
     if role == "user":
         query = query.filter(WarrantyClaim.created_by == user_id)
     return query.order_by(WarrantyClaim.created_at.desc()).all()
 
-# ---------------- DANH SÁCH LỊCH SỬ ----------------
 def list_history(db: Session, user_id: str = None, role: str = "user"):
     query = db.query(ClaimHistory)
     if role == "user":
