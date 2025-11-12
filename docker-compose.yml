@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  
+  db:
+    image: postgres:15
+    container_name: warranty_postgres_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Duy2004
+      - POSTGRES_DB=warranty_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. Định nghĩa service "backend" của bạn
+  backend:
+    container_name: warranty_vehicle_service
+    build:
+      context: ./Vehicle-Management-Service  # Bảo nó build từ thư mục này
+      dockerfile: Dockerfile                  # Dùng file Dockerfile bạn vừa tạo
+    ports:
+      - "8000:8000"                           # Mở cổng 8000
+    depends_on:
+      - db                                    # Bắt backend phải chờ db chạy xong
+
+volumes:
+  postgres_data:
