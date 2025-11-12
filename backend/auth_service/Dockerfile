@@ -12,4 +12,4 @@ COPY shared/ /app/shared/
 ENV PYTHONPATH=/app
 
 EXPOSE 8001
-CMD ["sh", "-c", "python -m auth_service.init_db && uvicorn auth_service.main:app --host 0.0.0.0 --port 8001"]
+CMD ["uvicorn", "auth_service.main:app", "--host", "0.0.0.0", "--port", "8001"]

@@ -1,35 +1,57 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from shared.db import Base
 
 class Role(Base):
+
     __tablename__ = "roles"
+
     role_id = Column(Integer, primary_key=True, autoincrement=True)
     role_name = Column(String(50), unique=True, nullable=False)
     description = Column(Text)
 
+    # One role -> many users
+    users = relationship("User", back_populates="role")
+
+
 class User(Base):
+
     __tablename__ = "users"
+
     user_id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+
+
+    # new fields
+    full_name = Column(String(100))
+    phone = Column(String(20))
+    gender = Column(String(10))
     email = Column(String(100))
+
     role_id = Column(Integer, ForeignKey("roles.role_id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    role = relationship("Role")
-    
+    # Relationships
+    role = relationship("Role", back_populates="users")
+        
+    profile = relationship("UserProfile", uselist=False, back_populates="user", cascade="all, delete")
+
+
 class UserProfile(Base):
+
     __tablename__ = "user_profiles"
     profile_id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False)
+    username = Column(String(50), unique=True, nullable=False)
+    
     full_name = Column(String(100))
-    phone = Column(String(20))
+    gender = Column(String(10)) 
+    phone = Column(String(20)) 
     address = Column(String(255))
-    department = Column(String(100))
-    position = Column(String(100))
-    is_active = Column(Integer, default=1)
+    position = Column(String(100)) 
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    user = relationship("User")
+    
+    user = relationship("User", back_populates="profile")

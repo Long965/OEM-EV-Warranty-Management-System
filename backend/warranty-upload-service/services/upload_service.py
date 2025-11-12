@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
 from models.upload_model import WarrantyUpload, UploadStatus
 from models.schema import WarrantyUploadCreate
-import uuid, requests, os
+import requests, os
 
 CLAIM_SERVICE_URL = os.getenv("CLAIM_SERVICE_URL", "http://warranty-claim-service:8082/claims")
 
-def create_upload(db: Session, data: WarrantyUploadCreate, user_id: uuid.UUID):
+def create_upload(db: Session, data: WarrantyUploadCreate, user_id: str):
     upload = WarrantyUpload(
         vin=data.vin,
         customer_name=data.customer_name,

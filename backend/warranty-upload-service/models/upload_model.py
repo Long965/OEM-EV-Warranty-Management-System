@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, Enum, Text, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, String, Enum, Text, TIMESTAMP, Integer
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import CHAR
-import uuid, enum
+import enum
 from database import Base
 
 class UploadStatus(str, enum.Enum):
@@ -12,7 +12,7 @@ class UploadStatus(str, enum.Enum):
     
 class WarrantyUpload(Base):
     __tablename__ = "warranty_uploads"
-    id = Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(Integer, primary_key=True, autoincrement=True) 
     vin = Column(String(50), nullable=False)
     customer_name = Column(String(100))
     description = Column(Text)
