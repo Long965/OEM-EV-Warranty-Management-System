@@ -142,53 +142,64 @@ def get_user(user_id: int, request: Request, db: Session = Depends(get_db)):
 def update_user(user_id: int, payload: schemas.UserUpdate, request: Request, db: Session = Depends(get_db)):
     user_payload = get_user_from_request(request)
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     if user_payload["role"] != "Admin" and user.username != user_payload["sub"]:
         raise HTTPException(status_code=403, detail="Access denied")
 
+    # ✅ CẬP NHẬT TẤT CẢ CÁC TRƯỜNG
     if payload.username:
         user.username = payload.username
     if payload.email:
         user.email = payload.email
+    if payload.full_name:  
+        user.full_name = payload.full_name
+    if payload.phone:  
+        user.phone = payload.phone
+    if payload.gender is not None:  
+        user.gender = payload.gender
+    if payload.password:  
+        # Hash password trước khi lưu
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        user.password = pwd_context.hash(payload.password)
     if payload.role_id and user_payload["role"] == "Admin":
         user.role_id = payload.role_id
 
     db.commit()
     db.refresh(user)
+    
     return {"message": "User updated successfully", "user": user}
 
 @app.delete("/users/{user_id}")
 def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     user_payload = get_user_from_request(request)
+    
+    # Chỉ Admin mới được xóa
+    if user_payload["role"] != "Admin":
+        raise HTTPException(status_code=403, detail="Only Admin can delete users")
+    
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-
-    if user_payload["role"] != "Admin" and user.username != user_payload["sub"]:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-
-    if TOKEN_MODEL_AVAILABLE:
-        # Sử dụng lệnh DELETE trực tiếp trên Query
-        deleted_tokens = db.query(Token).filter(Token.user_id == user_id).delete(synchronize_session=False)
-        print(f"Tokens deleted: {deleted_tokens}")
-    else:
-        # Nếu không tìm thấy Token Model, chỉ in cảnh báo
-        print("WARNING: Skipped deleting Tokens due to model import failure. IntegrityError likely.")
-
-
-    # 2. Xóa User Profile liên quan
-    deleted_profiles = db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
-    print(f"User Profiles deleted: {deleted_profiles}")
     
-    db.commit()
-    
-    db.delete(user)
-    db.commit()
-    
-    return {"message": f"User {user.username} deleted successfully"}
+    try:
+        # ✅ XÓA TẤT CẢ TOKENS CỦA USER TRƯỚC - DÙNG TokenStub
+        db.query(models.TokenStub).filter(models.TokenStub.user_id == user_id).delete()
+        
+        # ✅ XÓA UserProfile nếu có (đã có cascade rồi nhưng để chắc chắn)
+        db.query(models.UserProfile).filter(models.UserProfile.user_id == user_id).delete()
+        
+        # Sau đó mới xóa user
+        db.delete(user)
+        db.commit()
+        
+        return {"message": f"User {user.username} and related data deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Cannot delete user: {str(e)}")
 
 @app.post("/users/profiles")
 def create_profile(payload: schemas.UserProfileCreate, db: Session = Depends(get_db)):

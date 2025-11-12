@@ -14,6 +14,10 @@ class Role(Base):
     # One role -> many users
     users = relationship("User", back_populates="role")
 
+class TokenStub(Base):
+    __tablename__ = "tokens"
+    token_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
 
 class User(Base):
 

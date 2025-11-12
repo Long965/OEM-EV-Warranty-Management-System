@@ -14,12 +14,13 @@ class UserCreate(UserBase):
     password: str
 
 class UserUpdate(BaseModel):
-    username: Optional[str]
-    email: Optional[EmailStr]
-    role_id: Optional[int]
-    full_name: Optional[str]
-    phone: Optional[str]
-    gender: Optional[str]
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None  # ✅ BẮT BUỘC PHẢI CÓ
+    phone: Optional[str] = None      # ✅ BẮT BUỘC PHẢI CÓ
+    password: Optional[str] = None   # ✅ BẮT BUỘC PHẢI CÓ
+    gender: Optional[str] = None     # ✅ BẮT BUỘC PHẢI CÓ
+    role_id: Optional[int] = None
 
 class UserProfileBase(BaseModel):
     username: Optional[str] = None
