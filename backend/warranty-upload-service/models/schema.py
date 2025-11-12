@@ -1,13 +1,11 @@
 from pydantic import BaseModel
 from typing import Optional
-import uuid
 from enum import Enum
 
 class UploadStatus(str, Enum):
-    draft = "Draft"
-    submitted = "Submitted"
-    approved = "Approved"
-    rejected = "Rejected"
+    submitted = "Đã gửi"
+    approved = "Đã duyệt"
+    rejected = "Từ chối"
 
 class WarrantyUploadCreate(BaseModel):
     vin: str
@@ -15,16 +13,20 @@ class WarrantyUploadCreate(BaseModel):
     description: Optional[str]
     diagnosis: Optional[str]
     file_url: Optional[str]
+    warranty_cost: Optional[float] = None
 
 class WarrantyUploadReject(BaseModel):
     reason: str
 
+class WarrantyUploadApprove(BaseModel):
+    warranty_cost: Optional[float] = None
+
 class WarrantyUploadResponse(WarrantyUploadCreate):
-    id: uuid.UUID
+    id: int
     status: UploadStatus
-    created_by: uuid.UUID
-    approved_by: Optional[uuid.UUID]
+    created_by: str
+    approved_by: Optional[str]
     reject_reason: Optional[str]
 
     class Config:
-        from_attributes = True
+        orm_mode = True

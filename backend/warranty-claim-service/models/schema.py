@@ -1,13 +1,11 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from uuid import UUID
 from enum import Enum
 
 class ClaimStatus(str, Enum):
-    draft = "Draft"
-    submitted = "Submitted"
-    approved = "Approved"
-    completed = "Completed"
+    pending = "Chờ duyệt"
+    approved = "Đã duyệt"
+    rejected = "Từ chối"
 
 class Attachment(BaseModel):
     name: str
@@ -20,13 +18,15 @@ class WarrantyClaimCreate(BaseModel):
     issue_desc: str
     diagnosis_report: Optional[str]
     attachments: Optional[List[Attachment]] = []
+    warranty_cost: Optional[float] = None
 
 class WarrantyClaimResponse(BaseModel):
-    id: UUID
+    id: int
     vehicle_vin: str
     status: ClaimStatus
     warranty_cost: Optional[float]
-    created_by: Optional[UUID]
+    created_by: Optional[str]
 
     class Config:
         orm_mode = True
+

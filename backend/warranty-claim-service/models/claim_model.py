@@ -4,11 +4,9 @@ import enum
 from database import Base
 
 class ClaimStatus(str, enum.Enum):
-    draft = "Draft"
-    submitted = "Submitted"
+    pending = "Chờ duyệt"
     approved = "Đã duyệt"
     rejected = "Từ chối"
-    completed = "Completed"
 
 class WarrantyClaim(Base):
     __tablename__ = "warranty_claim"
@@ -18,7 +16,7 @@ class WarrantyClaim(Base):
     issue_desc = Column(Text)
     diagnosis_report = Column(Text)
     attachments = Column(JSON)
-    status = Column(Enum(ClaimStatus), default=ClaimStatus.draft)
+    status = Column(Enum(ClaimStatus), default=ClaimStatus.pending)
     created_by = Column(String(36), nullable=True)
     approved_by = Column(String(36), nullable=True)
     warranty_cost = Column(Numeric(12, 2))

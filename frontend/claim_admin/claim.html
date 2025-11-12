@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản lý phiếu bảo hành - Admin</title>
+
+  <!-- Gắn file CSS -->
+  <link rel="stylesheet" href="claim.css" />
+</head>
+
+<body>
+  <div class="container">
+    <div class="header-card">
+      <div class="header-top">
+        <div class="header-info">
+          <h1>Quản lý phiếu bảo hành</h1>
+          <p>Xem, duyệt hoặc từ chối các phiếu bảo hành được gửi từ nhân viên</p>
+        </div>
+      </div>
+
+      <div class="search-filter-bar">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Tìm theo mã xe hoặc mô tả..." />
+        </div>
+        <div class="filter-box">
+          <select id="statusFilter">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="Submitted">Đã gửi</option>
+            <option value="Approved">Đã duyệt</option>
+            <option value="Rejected">Từ chối</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bảng hiển thị phiếu -->
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Mã xe (VIN)</th>
+            <th>Mô tả lỗi</th>
+            <th>Chi phí (₫)</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="claimTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Gắn file JS -->
+  <script src="claim.js"></script>
+</body>
+</html>
