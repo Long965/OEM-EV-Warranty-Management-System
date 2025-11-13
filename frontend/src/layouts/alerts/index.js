@@ -33,7 +33,7 @@ export default function Alerts() {
   }, []);
 
   const columns = [
-    { Header: "Partname", accessor: "partname", align: "center" },
+    { Header: "Partname", accessor: "part_name", align: "center" },
     { Header: "Part", accessor: "part", align: "left" },
     { Header: "Type", accessor: "type", align: "center" },
     { Header: "Quantity", accessor: "quantity", align: "center" },
@@ -42,7 +42,7 @@ export default function Alerts() {
   ];
 
   const rows = alerts.map((a) => ({
-    name: a.partname,
+    name: a.part_name,
     part: a.part?.name || a.part_id,
     type: a.type,
     quantity: a.quantity,
