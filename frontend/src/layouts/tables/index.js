@@ -8,8 +8,6 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -18,46 +16,38 @@ import Footer from "examples/Footer";
 import DataTable from "examples/Tables/DataTable";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
-import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
 
-function Tables() {
+function Parts() {
   const [parts, setParts] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [editPart, setEditPart] = useState(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    quantity: "",
+    serial_number: "",
+    type: "",
+    price: "",
+    supplier: "",
   });
 
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-  // Fetch data
+  const fetchParts = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/parts/`);
+      setParts(res.data);
+    } catch (err) {
+      console.error("API fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/parts/`);
-        setParts(res.data);
-      } catch (err) {
-        console.error("API fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [API_URL]);
-
-  const showSnackbar = (message, severity = "info") => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
+    fetchParts();
+  }, []);
 
   const handleOpenModal = (part = null) => {
     if (part) {
@@ -65,11 +55,21 @@ function Tables() {
       setFormData({
         name: part.name,
         description: part.description,
-        quantity: part.quantity,
+        serial_number: part.serial_number,
+        type: part.type,
+        price: part.price,
+        supplier: part.supplier || "",
       });
     } else {
       setEditPart(null);
-      setFormData({ name: "", description: "", quantity: "" });
+      setFormData({
+        name: "",
+        description: "",
+        serial_number: "",
+        type: "",
+        price: "",
+        supplier: "",
+      });
     }
     setOpenModal(true);
   };
@@ -85,21 +85,13 @@ function Tables() {
       if (editPart) {
         const res = await axios.put(`${API_URL}/parts/${editPart.id}`, formData);
         setParts((prev) => prev.map((p) => (p.id === editPart.id ? res.data : p)));
-        showSnackbar("Part updated successfully!", "success");
       } else {
         const res = await axios.post(`${API_URL}/parts/`, formData);
         setParts((prev) => [...prev, res.data]);
-        showSnackbar("Part added successfully!", "success");
       }
-
-      if (parseInt(formData.quantity, 10) < 5) {
-        showSnackbar("⚠️ Low stock alert for this part!", "warning");
-      }
-
       handleCloseModal();
     } catch (err) {
       console.error("Save error:", err);
-      showSnackbar("Error saving part!", "error");
     }
   };
 
@@ -108,26 +100,8 @@ function Tables() {
     try {
       await axios.delete(`${API_URL}/parts/${id}`);
       setParts((prev) => prev.filter((p) => p.id !== id));
-      showSnackbar("Part deleted successfully!", "success");
     } catch (err) {
       console.error("Delete error:", err);
-      showSnackbar("Error deleting part!", "error");
-    }
-  };
-
-  const handleAdjustQuantity = async (part, delta) => {
-    const newQty = part.quantity + delta;
-    try {
-      const res = await axios.put(`${API_URL}/parts/${part.id}`, {
-        ...part,
-        quantity: newQty,
-      });
-      setParts((prev) => prev.map((p) => (p.id === part.id ? res.data : p)));
-      showSnackbar(`Quantity ${delta > 0 ? "increased" : "decreased"}!`, "info");
-      if (newQty < 5) showSnackbar("⚠️ Low stock alert!", "warning");
-    } catch (err) {
-      console.error("Quantity update error:", err);
-      showSnackbar("Error updating quantity!", "error");
     }
   };
 
@@ -135,18 +109,14 @@ function Tables() {
     p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const getStockStatus = (quantity) => {
-    if (quantity < 5) return <MDTypography color="error">Low Stock</MDTypography>;
-    if (quantity > 20) return <MDTypography color="success">In Stock</MDTypography>;
-    return <MDTypography color="warning">Limited</MDTypography>;
-  };
-
   const columns = [
     { Header: "ID", accessor: "id", align: "center" },
-    { Header: "Part Name", accessor: "name", align: "left" },
+    { Header: "Name", accessor: "name", align: "left" },
     { Header: "Description", accessor: "description", align: "left" },
-    { Header: "Quantity", accessor: "quantity", align: "center" },
-    { Header: "Status", accessor: "status", align: "center" },
+    { Header: "Serial", accessor: "serial_number", align: "center" },
+    { Header: "Type", accessor: "type", align: "center" },
+    { Header: "Price", accessor: "price", align: "center" },
+    { Header: "Supplier", accessor: "supplier", align: "left" },
     { Header: "Actions", accessor: "actions", align: "center" },
   ];
 
@@ -154,16 +124,12 @@ function Tables() {
     id: p.id,
     name: p.name,
     description: p.description,
-    quantity: p.quantity,
-    status: getStockStatus(p.quantity),
+    serial_number: p.serial_number,
+    type: p.type,
+    price: p.price,
+    supplier: p.supplier,
     actions: (
       <>
-        <IconButton onClick={() => handleAdjustQuantity(p, 1)} color="success">
-          <AddCircleIcon />
-        </IconButton>
-        <IconButton onClick={() => handleAdjustQuantity(p, -1)} color="warning">
-          <RemoveCircleIcon />
-        </IconButton>
         <IconButton onClick={() => handleOpenModal(p)} color="primary">
           <EditIcon />
         </IconButton>
@@ -195,7 +161,7 @@ function Tables() {
                 alignItems="center"
               >
                 <MDTypography variant="h6" color="white">
-                  Parts Inventory
+                  Parts Management
                 </MDTypography>
                 <Button variant="contained" color="secondary" onClick={() => handleOpenModal()}>
                   + Add Part
@@ -233,7 +199,6 @@ function Tables() {
         </Grid>
       </MDBox>
 
-      {/* Modal Add/Edit */}
       <Modal open={openModal} onClose={handleCloseModal}>
         <Box
           sx={{
@@ -251,52 +216,21 @@ function Tables() {
           <MDTypography variant="h6" mb={2}>
             {editPart ? "Edit Part" : "Add New Part"}
           </MDTypography>
-          <TextField
-            label="Name"
-            name="name"
-            fullWidth
-            value={formData.name}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Description"
-            name="description"
-            fullWidth
-            value={formData.description}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Quantity"
-            name="quantity"
-            fullWidth
-            type="number"
-            value={formData.quantity}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
+          <TextField label="Name" name="name" fullWidth sx={{ mb: 2 }} value={formData.name} onChange={handleChange} />
+          <TextField label="Description" name="description" fullWidth sx={{ mb: 2 }} value={formData.description} onChange={handleChange} />
+          <TextField label="Serial Number" name="serial_number" fullWidth sx={{ mb: 2 }} value={formData.serial_number} onChange={handleChange} />
+          <TextField label="Type" name="type" fullWidth sx={{ mb: 2 }} value={formData.type} onChange={handleChange} />
+          <TextField label="Price" name="price" type="number" fullWidth sx={{ mb: 2 }} value={formData.price} onChange={handleChange} />
+          <TextField label="Supplier" name="supplier" fullWidth sx={{ mb: 2 }} value={formData.supplier} onChange={handleChange} />
           <Button variant="contained" color="info" fullWidth onClick={handleSubmit}>
             {editPart ? "Update" : "Add"}
           </Button>
         </Box>
       </Modal>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-
       <Footer />
     </DashboardLayout>
   );
 }
 
-export default Tables;
+export default Parts;

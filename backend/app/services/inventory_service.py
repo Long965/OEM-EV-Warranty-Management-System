@@ -1,4 +1,3 @@
-# app/services/inventory_service.py
 from sqlalchemy.orm import Session
 from app.repositories.inventory_repo import InventoryRepository
 from app.schemas.inventory_schema import InventoryCreate
@@ -6,6 +5,9 @@ from app.schemas.inventory_schema import InventoryCreate
 class InventoryService:
     def __init__(self, db: Session):
         self.repo = InventoryRepository(db)
+
+    def list_all(self):
+        return self.repo.list_all()
 
     def get_inventory(self, part_id: int, warehouse: str | None = None):
         return self.repo.get_by_part_and_warehouse(part_id, warehouse)
