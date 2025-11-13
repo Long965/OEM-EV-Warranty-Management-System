@@ -16,10 +16,10 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
-    full_name: Optional[str] = None  # ✅ BẮT BUỘC PHẢI CÓ
-    phone: Optional[str] = None      # ✅ BẮT BUỘC PHẢI CÓ
-    password: Optional[str] = None   # ✅ BẮT BUỘC PHẢI CÓ
-    gender: Optional[str] = None     # ✅ BẮT BUỘC PHẢI CÓ
+    full_name: Optional[str] = None  
+    phone: Optional[str] = None      
+    password: Optional[str] = None   
+    gender: Optional[str] = None     
     role_id: Optional[int] = None
 
 class UserProfileBase(BaseModel):

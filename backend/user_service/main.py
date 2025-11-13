@@ -186,10 +186,10 @@ def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     
     try:
-        # ✅ XÓA TẤT CẢ TOKENS CỦA USER TRƯỚC - DÙNG TokenStub
+        # XÓA TẤT CẢ TOKENS CỦA USER TRƯỚC - DÙNG TokenStub
         db.query(models.TokenStub).filter(models.TokenStub.user_id == user_id).delete()
         
-        # ✅ XÓA UserProfile nếu có (đã có cascade rồi nhưng để chắc chắn)
+        # XÓA UserProfile nếu có (đã có cascade rồi nhưng để chắc chắn)
         db.query(models.UserProfile).filter(models.UserProfile.user_id == user_id).delete()
         
         # Sau đó mới xóa user
