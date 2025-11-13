@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from models.schema import WarrantyClaimCreate
-from models.claim_model import ClaimStatus
+from models.claim_model import ClaimStatus, WarrantyClaim
 from services import claim_service
 from database import get_db
 
@@ -38,3 +38,20 @@ def list_claims(role: str = Query("user"), user_id: str = Query("01"), db: Sessi
 def get_history(role: str = Query("user"), user_id: str = Query("01"), db: Session = Depends(get_db)):
     history = claim_service.list_history(db, user_id, role)
     return history
+
+@router.get("/{claim_id}")
+def get_claim(claim_id: int, db: Session = Depends(get_db)):
+    """Get single claim details for editing"""
+    claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found")
+    return claim
+
+@router.put("/{claim_id}")
+def update_claim(claim_id: int, data: WarrantyClaimCreate, db: Session = Depends(get_db)):
+    """Update claim details"""
+    user_id = "11"
+    claim = claim_service.update_claim(db, claim_id, data, user_id)
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found")
+    return {"message": "Claim updated successfully", "claim_id": claim.id}

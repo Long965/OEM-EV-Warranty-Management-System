@@ -11,14 +11,12 @@ from fastapi import FastAPI
 
 router = APIRouter(prefix="/uploads", tags=["Warranty Uploads"])
 
-# 🟢 Nhân viên tạo phiếu bảo hành
 @router.post("/", summary="Nhân viên tạo phiếu bảo hành")
 def create_upload(data: WarrantyUploadCreate, db: Session = Depends(get_db)):
     user_id = "11111111-1111-1111-1111-111111111111"
     upload = upload_service.create_upload(db, data, user_id)
     return {"message": "Upload created", "upload_id": upload.id}
 
-# 🟡 Nhân viên gửi phiếu lên hãng
 @router.put("/{upload_id}/submit", summary="Nhân viên gửi phiếu lên admin duyệt")
 def submit_upload(upload_id: int, db: Session = Depends(get_db)):
     upload = upload_service.submit_upload(db, upload_id)
@@ -26,14 +24,11 @@ def submit_upload(upload_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Upload not found")
     return {"message": "Phiếu đã gửi", "status": upload.status}
 
-# 📜 Danh sách phiếu
 @router.get("/", summary="Danh sách phiếu bảo hành")
 def list_uploads(created_by: str = Query(None), db: Session = Depends(get_db)):
     uploads = upload_service.list_uploads(db, created_by)
     return uploads
 
-
-# 📁 Upload file
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 

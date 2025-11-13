@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from routes import claim_routes
 from database import Base, engine
 
-app = FastAPI(title="Warranty Claim Service", version="1.0")
+app = FastAPI(title="Warranty Claim Service")
 
 Base.metadata.create_all(bind=engine)
 

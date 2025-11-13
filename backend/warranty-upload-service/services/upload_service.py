@@ -5,7 +5,6 @@ import requests, os
 
 CLAIM_SERVICE_URL = os.getenv("CLAIM_SERVICE_URL", "http://warranty-claim-service:8082/claims")
 
-# 🟢 Nhân viên tạo phiếu
 def create_upload(db: Session, data: WarrantyUploadCreate, user_id: str):
     upload = WarrantyUpload(
         vin=data.vin,
@@ -22,7 +21,6 @@ def create_upload(db: Session, data: WarrantyUploadCreate, user_id: str):
     db.refresh(upload)
     return upload
 
-# 🟡 Gửi phiếu sang Claim Service
 def submit_upload(db: Session, upload_id: int):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload:
@@ -47,7 +45,6 @@ def submit_upload(db: Session, upload_id: int):
 
     return upload
 
-# 📜 Danh sách phiếu
 def list_uploads(db: Session, created_by: str = None):
     query = db.query(WarrantyUpload)
     if created_by:
