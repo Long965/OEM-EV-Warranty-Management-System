@@ -16,9 +16,17 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await login(form.username, form.password)
-      const to = loc.state?.from || '/'
-      nav(to, { replace: true })
+      const userData = await login(form.username, form.password)
+      
+      // Smart redirect based on role
+      let redirectTo = loc.state?.from || '/'
+      
+      // If no specific destination, redirect based on role
+      if (redirectTo === '/') {
+        redirectTo = userData.role === 'Admin' ? '/users' : '/'
+      }
+      
+      nav(redirectTo, { replace: true })
     } catch (e) {
       setErr(e?.response?.data?.detail || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.')
     } finally {

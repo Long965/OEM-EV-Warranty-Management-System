@@ -4,5 +4,5 @@ export const SELECTABLE_ROLES = [
   { id: 2, name: 'SC_Staff' },
   { id: 3, name: 'SC_Technician' },
   { id: 4, name: 'EVM_Staff' },
-  { id: 1, name: 'Admin' } // chỉ cho Admin khi tạo user trong trang Users
+  // { id: 1, name: 'Admin' } // chỉ cho Admin khi tạo user trong trang Users
 ]

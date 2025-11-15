@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { createUser, getUser, updateUser } from '../../api/users'
 
 const ROLE_OPTIONS = [
-  { id:2, name:'SC_Staff' },
+  { id:1, name:'Admin' }, { id:2, name:'SC_Staff' },
   { id:3, name:'SC_Technician' }, { id:4, name:'EVM_Staff' }
 ]
 
