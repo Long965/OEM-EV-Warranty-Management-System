@@ -1,13 +1,33 @@
+version: "3.9"
 
 services:
-  # ⚙️ Backend FastAPI
+  # 🌐 API GATEWAY (MAIN ENTRY)
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: micro_gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      BACKEND_URL: http://backend:8100
+    volumes:
+      - ./gateway:/app
+    networks:
+      - app_net
+    restart: always
+
+  # ⚙️ BACKEND FASTAPI
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: oem_ev_warranty_backend
     command: >
-      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      uvicorn app.main:app --host 0.0.0.0 --port 8100 --reload
     environment:
       DB_URL: mysql+pymysql://root:root@mysql-db:3306/warehouse_management
       REDIS_URL: redis://redis-cache:6379/0
@@ -15,13 +35,13 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "8100:8100"
     depends_on:
       mysql-db:
         condition: service_healthy
       redis-cache:
         condition: service_started
-    restart: on-failure
+    restart: always
     networks:
       - app_net
 
@@ -64,13 +84,13 @@ services:
     container_name: oem_ev_warranty_frontend
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_API_BASE=http://backend:8000
+      - REACT_APP_API_BASE=http://gateway:8000/api
     stdin_open: true
     tty: true
     ports:
       - "3000:3000"
     depends_on:
-      backend:
+      gateway:
         condition: service_started
     networks:
       - app_net

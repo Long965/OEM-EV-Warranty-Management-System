@@ -15,4 +15,4 @@ COPY . .
 RUN apt-get update && apt-get install -y netcat-openbsd
 
 # Chạy lệnh chờ MySQL sẵn sàng trước khi khởi động FastAPI
-CMD ["sh", "-c", "until nc -z mysql-db 3306; do echo '⏳ Waiting for MySQL...'; sleep 2; done; echo '✅ MySQL ready!'; uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+CMD ["sh", "-c", "until nc -z mysql-db 3306; do echo '⏳ Waiting for MySQL...'; sleep 2; done; echo '✅ MySQL ready!'; uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload"]
