@@ -1,21 +1,40 @@
+# gateway/app/utils/proxy.py
+
 import httpx
-from fastapi import Request, Response
+from fastapi import Request
+from starlette.responses import Response, JSONResponse
 
-async def forward_request(request: Request, upstream_url: str):
+async def proxy_request(request: Request, backend_url: str) -> Response:
+    client = httpx.AsyncClient(base_url=backend_url)
+
+    # path sẽ là "/parts/" hoặc "/parts/123"
+    path = request.scope['path'] 
+    query = request.url.query
+    
+    data = await request.body()
+    
     headers = dict(request.headers)
-    # Xóa host để tránh lỗi host mismatch
-    headers.pop("host", None)
+    headers.pop('host', None)
+    headers.pop('content-length', None)
 
-    async with httpx.AsyncClient() as client:
-        body = await request.body()
-        resp = await client.request(
+    try:
+        # Gửi request đến: http://backend:8100/parts/
+        response = await client.request(
             method=request.method,
-            url=upstream_url,
-            headers=headers,  # ✅ giữ nguyên Authorization header
-            content=body,
+            url=path + ("?" + query if query else ""),
+            headers=headers,
+            content=data
         )
+
         return Response(
-            content=resp.content,
-            status_code=resp.status_code,
-            headers=dict(resp.headers)
+            content=response.content,
+            status_code=response.status_code,
+            headers=response.headers,
+            media_type=response.headers.get("content-type")
+        )
+
+    except httpx.ConnectError:
+        return JSONResponse(
+            content={"detail": "Backend service is unavailable."},
+            status_code=503
         )
