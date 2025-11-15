@@ -636,7 +636,7 @@ label {
   height: 44px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  padding: 10px 14px;
+  padding: 12px 0 12px 8px;
   outline: none;
   background: white;
   font-size: 14px;
