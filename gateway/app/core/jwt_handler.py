@@ -1,15 +1,27 @@
-from app.core.config import JWT_SECRET, JWT_ALGORITHM, VERIFY_JWT
-import jwt
+# gateway/app/core/jwt_handler.py
 
-class InvalidToken(Exception):
-    pass
+import jwt
+import os
+from fastapi import HTTPException
+from starlette import status
+
+# Lấy JWT_SECRET từ biến môi trường.
+JWT_SECRET = os.getenv("JWT_SECRET", "your-default-secret-key-if-not-set")
+ALGORITHM = "HS256" # Tự định nghĩa thuật toán ở đây
+
+class InvalidToken(HTTPException):
+    def __init__(self, detail: str = "Invalid or expired token"):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=detail,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 def decode_token(token: str) -> dict:
-    if not VERIFY_JWT:
-        # development mode: skip verification
-        return {}
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
         return payload
-    except jwt.PyJWTError as e:
-        raise InvalidToken("Invalid token") from e
+    except jwt.ExpiredSignatureError:
+        raise InvalidToken(detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise InvalidToken(detail="Invalid token")

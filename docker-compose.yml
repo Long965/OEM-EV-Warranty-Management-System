@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # 🌐 API GATEWAY (MAIN ENTRY)
   gateway:

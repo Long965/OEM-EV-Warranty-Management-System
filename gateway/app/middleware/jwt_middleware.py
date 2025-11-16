@@ -1,17 +1,29 @@
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-import jwt, os
+# gateway/app/core/jwt_handler.py
 
-JWT_SECRET = os.getenv("JWT_SECRET")
+import jwt
+import os
+from fastapi import HTTPException
+from starlette import status
 
-class JWTMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        auth = request.headers.get("Authorization")
-        if auth and auth.startswith("Bearer "):
-            token = auth.split(" ")[1]
-            try:
-                payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-                request.state.user = payload
-            except Exception:
-                request.state.user = None
-        return await call_next(request)
+# Dòng "from app.core.config..." đã bị XÓA
+# Chúng ta sẽ định nghĩa các biến ở đây:
+
+JWT_SECRET = os.getenv("JWT_SECRET", "your-default-secret-key-if-not-set")
+ALGORITHM = "HS256" # Tự định nghĩa thuật toán ở đây
+
+class InvalidToken(HTTPException):
+    def __init__(self, detail: str = "Invalid or expired token"):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=detail,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+def decode_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise InvalidToken(detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise InvalidToken(detail="Invalid token")
