@@ -101,44 +101,12 @@ services:
         condition: service_started
     restart: always
     
-  part_service:
-    build:
-      context: ./backend
-      dockerfile: part_service/Dockerfile
-    container_name: part_service
-    command: 
-      uvicorn app.main:app --host 0.0.0.0 --port 8084 --reload
-    environment:
-      # SỬA LỖI: Trỏ đến đúng 'warranty-mysql' và dùng đúng password 'long1234'
-      DB_URL: mysql+pymysql://root:long1234@warranty-mysql:3306/warehouse_management
-      REDIS_URL: redis://redis-cache:6379/0
-      PYTHONPATH: /app
-    volumes:
-      - ./backend:/app
-    ports:
-      # SỬA LỖI: Port bên trong container là 8084, không phải 8000
-      - "8084:8084"
-    depends_on:
-      redis-cache: # Phụ thuộc này giờ đã hợp lệ
-        condition: service_started
-      warranty-mysql: # Thêm phụ thuộc vào DB
-        condition: service_healthy
-    networks: # Thêm mạng
-      - app_net
-  
-  # THÊM MỚI: Định nghĩa service redis-cache
-  redis-cache:
-    image: redis:alpine
-    container_name: redis-cache
-    ports:
-      - "6379:6379"
-    networks:
-      - app_net
+
 
 volumes:
   mysql_data:
 
-# THÊM MỚI: Định nghĩa mạng app_net ở cấp cao nhất
-networks:
-  app_net:
-    driver: bridge
+#networks:
+  #app_net:
+    #driver: bridge
+
