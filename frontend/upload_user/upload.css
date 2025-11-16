@@ -134,12 +134,24 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .card-id {
   font-size: 0.875rem;
   font-weight: 700;
   color: #667eea;
+}
+
+.sent-indicator {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: #bee3f8;
+  color: #2b6cb0;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
 .status-badge {

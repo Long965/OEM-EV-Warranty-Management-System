@@ -73,11 +73,14 @@ def submit_upload(db: Session, upload_id: int):
     if not upload:
         return None
 
+    # Check if already sent to claim service
+    if upload.is_sent_to_claim:
+        print(f"[INFO] Upload {upload_id} already sent to Claim Service")
+        return upload
+
     # Ensure status is submitted
     upload.status = UploadStatus.submitted
-    db.commit()
-    db.refresh(upload)
-
+    
     # Sync to claim service
     try:
         payload = {
@@ -90,11 +93,17 @@ def submit_upload(db: Session, upload_id: int):
         }
         resp = requests.post(CLAIM_SERVICE_URL, json=payload, timeout=5)
         if resp.status_code == 200:
-            print(f"[SYNC] Upload {upload_id} sent to Claim Service")
+            # Mark as sent to claim service
+            upload.is_sent_to_claim = True
+            db.commit()
+            db.refresh(upload)
+            print(f"[SYNC] Upload {upload_id} sent to Claim Service successfully")
         else:
             print(f"[WARN] Claim Service returned error: {resp.status_code}")
+            return None
     except Exception as e:
         print(f"[WARN] Không thể sync sang Claim Service: {e}")
+        return None
 
     return upload
 

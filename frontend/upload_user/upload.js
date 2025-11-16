@@ -84,21 +84,31 @@ function renderGrid(data) {
   data.forEach(upload => {
     const statusValue = typeof upload.status === 'object' ? upload.status.value : upload.status;
     const statusClass = statusClassMap[statusValue] || "submitted";
+    const isSentToClaim = upload.is_sent_to_claim || false;
     
     const card = document.createElement("div");
     card.className = "upload-card";
 
-    // Show different buttons based on status
+    // Show different buttons based on status and submission state
     let actionButtons = '';
     if (statusValue === "Đã gửi") {
-      // Can edit, delete, or submit
-      actionButtons = `
-        <button class="btn-submit" onclick="submitUpload(${upload.id})">📤 Gửi duyệt</button>
-        <button class="btn-edit" onclick="openEditModal(${upload.id})">✏️ Sửa</button>
-        <button class="btn-delete" onclick="deleteUpload(${upload.id})">🗑️ Xóa</button>
-      `;
+      if (isSentToClaim) {
+        // Already sent to claim service - can only view, edit, delete
+        actionButtons = `
+          <button class="btn-view" onclick="viewDetail(${upload.id})">👁️ Xem chi tiết</button>
+          <button class="btn-edit" onclick="openEditModal(${upload.id})">✏️ Sửa</button>
+          <button class="btn-delete" onclick="deleteUpload(${upload.id})">🗑️ Xóa</button>
+        `;
+      } else {
+        // Not yet sent - can submit, edit, delete
+        actionButtons = `
+          <button class="btn-submit" onclick="submitUpload(${upload.id})">📤 Gửi duyệt</button>
+          <button class="btn-edit" onclick="openEditModal(${upload.id})">✏️ Sửa</button>
+          <button class="btn-delete" onclick="deleteUpload(${upload.id})">🗑️ Xóa</button>
+        `;
+      }
     } else {
-      // Can only view details (approved or rejected)
+      // Approved or rejected - can only view
       actionButtons = `
         <button class="btn-view" onclick="viewDetail(${upload.id})">👁️ Chi tiết</button>
       `;
@@ -108,6 +118,7 @@ function renderGrid(data) {
       <div class="card-header">
         <div class="card-id">#${upload.id}</div>
         <span class="status-badge ${statusClass}">${statusValue}</span>
+        ${isSentToClaim && statusValue === "Đã gửi" ? '<span class="sent-indicator">✓ Đã gửi</span>' : ''}
       </div>
       
       <div class="card-body">

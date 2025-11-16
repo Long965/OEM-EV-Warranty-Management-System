@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Enum, Text, TIMESTAMP, Integer, Numeric
+from sqlalchemy import Column, String, Enum, Text, TIMESTAMP, Integer, Numeric, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import CHAR
 import enum
@@ -23,5 +23,6 @@ class WarrantyUpload(Base):
     approved_by = Column(CHAR(36), nullable=True)
     status = Column(Enum(UploadStatus), default=UploadStatus.submitted)
     reject_reason = Column(Text, nullable=True)
+    is_sent_to_claim = Column(Boolean, default=False)  # Track if submitted to claim service
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, onupdate=func.now())
