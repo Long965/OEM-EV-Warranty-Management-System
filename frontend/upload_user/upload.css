@@ -217,7 +217,7 @@ body {
   margin-top: 1rem;
 }
 
-.btn-submit, .btn-view {
+.btn-submit, .btn-view, .btn-edit, .btn-delete {
   flex: 1;
   padding: 0.625rem;
   border: none;
@@ -238,6 +238,26 @@ body {
   transform: translateY(-1px);
 }
 
+.btn-edit {
+  background: #4299e1;
+  color: white;
+}
+
+.btn-edit:hover {
+  background: #3182ce;
+  transform: translateY(-1px);
+}
+
+.btn-delete {
+  background: #f56565;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #e53e3e;
+  transform: translateY(-1px);
+}
+
 .btn-view {
   background: #e2e8f0;
   color: #4a5568;
@@ -247,9 +267,12 @@ body {
   background: #cbd5e0;
 }
 
-.btn-submit:disabled {
+.btn-submit:disabled,
+.btn-edit:disabled,
+.btn-delete:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 /* === Modal === */
@@ -473,6 +496,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* === Responsive === */
 @media (max-width: 768px) {
   body {
     padding: 1rem;

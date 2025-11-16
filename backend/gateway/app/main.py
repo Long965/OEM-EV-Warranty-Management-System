@@ -17,7 +17,7 @@ app.add_middleware(JWTMiddleware)
 app.include_router(auth_routes.router, prefix="/auth", tags=["Auth"])
 app.include_router(user_routes.router, tags=["User"])
 app.include_router(claim_routes_gateway.router, prefix="/claims")
-app.include_router(upload_routes_gateway.router, prefix="/uploads")
+app.include_router(upload_routes_gateway.router)
 
 @app.get("/")
 def root():

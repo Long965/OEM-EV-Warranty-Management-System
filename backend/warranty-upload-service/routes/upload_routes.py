@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from database import get_db
 from models.schema import WarrantyUploadCreate, WarrantyUploadReject, WarrantyUploadApprove
+from models.upload_model import WarrantyUpload
 from services import upload_service
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
@@ -17,12 +18,44 @@ def create_upload(data: WarrantyUploadCreate, db: Session = Depends(get_db)):
     upload = upload_service.create_upload(db, data, user_id)
     return {"message": "Upload created", "upload_id": upload.id}
 
+@router.get("/{upload_id}", summary="Lấy chi tiết phiếu bảo hành")
+def get_upload(upload_id: int, db: Session = Depends(get_db)):
+    """Get single upload details for editing"""
+    upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
+    if not upload:
+        raise HTTPException(status_code=404, detail="Upload not found")
+    return upload
+
+@router.put("/{upload_id}", summary="Chỉnh sửa phiếu bảo hành")
+def update_upload(upload_id: int, data: WarrantyUploadCreate, db: Session = Depends(get_db)):
+    """Update upload details - only allowed before submission"""
+    upload = upload_service.update_upload(db, upload_id, data)
+    if not upload:
+        raise HTTPException(status_code=404, detail="Upload not found")
+    return {"message": "Upload updated successfully", "upload_id": upload.id}
+
+@router.delete("/{upload_id}", summary="Xóa phiếu bảo hành")
+def delete_upload(upload_id: int, db: Session = Depends(get_db)):
+    """Delete upload - only allowed before submission"""
+    success = upload_service.delete_upload(db, upload_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Upload not found or cannot be deleted")
+    return {"message": "Upload deleted successfully"}
+
 @router.put("/{upload_id}/submit", summary="Nhân viên gửi phiếu lên admin duyệt")
 def submit_upload(upload_id: int, db: Session = Depends(get_db)):
     upload = upload_service.submit_upload(db, upload_id)
     if not upload:
         raise HTTPException(status_code=404, detail="Upload not found")
     return {"message": "Phiếu đã gửi", "status": upload.status}
+
+@router.put("/{upload_id}/sync-status", summary="Đồng bộ trạng thái từ Claim Service")
+def sync_status(upload_id: int, status: str = Query(...), db: Session = Depends(get_db)):
+    """Sync status from claim service when approved/rejected"""
+    upload = upload_service.sync_status_from_claim(db, upload_id, status)
+    if not upload:
+        raise HTTPException(status_code=404, detail="Upload not found")
+    return {"message": "Status synced", "status": upload.status}
 
 @router.get("/", summary="Danh sách phiếu bảo hành")
 def list_uploads(created_by: str = Query(None), db: Session = Depends(get_db)):
@@ -54,4 +87,3 @@ async def upload_files(files: list[UploadFile] = File(...)):
 
 def setup_static(app: FastAPI):
     app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-

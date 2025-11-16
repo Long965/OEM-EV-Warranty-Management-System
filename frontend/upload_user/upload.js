@@ -2,14 +2,17 @@ const API_BASE = "http://localhost:8000/uploads";
 const uploadsGrid = document.getElementById("uploadsGrid");
 const searchInput = document.getElementById("searchInput");
 const statusFilter = document.getElementById("statusFilter");
-const createModal = document.getElementById("createModal");
+const editModal = document.getElementById("editModal");
 const detailModal = document.getElementById("detailModal");
-const createForm = document.getElementById("createForm");
+const editForm = document.getElementById("editForm");
 const fileUpload = document.getElementById("fileUpload");
 const filePreview = document.getElementById("filePreview");
+const modalTitle = document.getElementById("modalTitle");
+const submitBtn = document.getElementById("submitBtn");
 
 let uploads = [];
 let uploadedFiles = [];
+let currentEditId = null;
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 
 const statusClassMap = {
@@ -85,9 +88,21 @@ function renderGrid(data) {
     const card = document.createElement("div");
     card.className = "upload-card";
 
-    const submitButton = statusValue === "Đã gửi" 
-      ? `<button class="btn-submit" onclick="submitUpload(${upload.id})">📤 Gửi duyệt</button>`
-      : "";
+    // Show different buttons based on status
+    let actionButtons = '';
+    if (statusValue === "Đã gửi") {
+      // Can edit, delete, or submit
+      actionButtons = `
+        <button class="btn-submit" onclick="submitUpload(${upload.id})">📤 Gửi duyệt</button>
+        <button class="btn-edit" onclick="openEditModal(${upload.id})">✏️ Sửa</button>
+        <button class="btn-delete" onclick="deleteUpload(${upload.id})">🗑️ Xóa</button>
+      `;
+    } else {
+      // Can only view details (approved or rejected)
+      actionButtons = `
+        <button class="btn-view" onclick="viewDetail(${upload.id})">👁️ Chi tiết</button>
+      `;
+    }
     
     card.innerHTML = `
       <div class="card-header">
@@ -107,8 +122,7 @@ function renderGrid(data) {
       </div>
       
       <div class="card-actions">
-        ${submitButton}
-        <button class="btn-view" onclick="viewDetail(${upload.id})">👁️ Chi tiết</button>
+        ${actionButtons}
       </div>
     `;
     
@@ -116,20 +130,63 @@ function renderGrid(data) {
   });
 }
 
+// Open modal for create
 function openCreateModal() {
-  createModal.classList.add("active");
-  createForm.reset();
+  currentEditId = null;
+  modalTitle.textContent = "Tạo phiếu bảo hành mới";
+  submitBtn.textContent = "Tạo phiếu";
+  editModal.classList.add("active");
+  editForm.reset();
   uploadedFiles = [];
   filePreview.innerHTML = "";
 }
 
-function closeCreateModal() {
-  createModal.classList.remove("active");
-  createForm.reset();
-  uploadedFiles = [];
-  filePreview.innerHTML = "";
+// Open modal for edit
+async function openEditModal(id) {
+  currentEditId = id;
+  modalTitle.textContent = "Chỉnh sửa phiếu bảo hành";
+  submitBtn.textContent = "Lưu thay đổi";
+  
+  try {
+    const res = await fetch(`${API_BASE}/${id}`);
+    if (!res.ok) throw new Error("Không thể tải thông tin phiếu");
+    
+    const upload = await res.json();
+    
+    // Check if can edit (must be "Đã gửi")
+    const statusValue = typeof upload.status === 'object' ? upload.status.value : upload.status;
+    if (statusValue !== "Đã gửi") {
+      showToast("Chỉ có thể sửa phiếu ở trạng thái 'Đã gửi'", "error");
+      return;
+    }
+    
+    document.getElementById("vin").value = upload.vin || "";
+    document.getElementById("customerName").value = upload.customer_name || "";
+    document.getElementById("description").value = upload.description || "";
+    document.getElementById("diagnosis").value = upload.diagnosis || "";
+    document.getElementById("warrantyCost").value = upload.warranty_cost || "";
+    
+    uploadedFiles = upload.file_url ? [{ url: upload.file_url, name: "File hiện tại" }] : [];
+    if (uploadedFiles.length > 0) {
+      filePreview.innerHTML = `<div class="file-item">📎 ${uploadedFiles[0].name}</div>`;
+    }
+    
+    editModal.classList.add("active");
+  } catch (err) {
+    console.error("Error loading upload:", err);
+    showToast("Không thể tải thông tin phiếu!", "error");
+  }
 }
 
+function closeEditModal() {
+  editModal.classList.remove("active");
+  editForm.reset();
+  uploadedFiles = [];
+  filePreview.innerHTML = "";
+  currentEditId = null;
+}
+
+// Handle file upload
 fileUpload.addEventListener("change", async (e) => {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
@@ -166,7 +223,8 @@ fileUpload.addEventListener("change", async (e) => {
   }
 });
 
-async function submitCreate(event) {
+// Submit form (create or edit)
+async function submitForm(event) {
   event.preventDefault();
   
   const data = {
@@ -179,24 +237,43 @@ async function submitCreate(event) {
   };
   
   try {
-    const res = await fetch(API_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
+    let res;
+    if (currentEditId) {
+      // Update existing
+      res = await fetch(`${API_BASE}/${currentEditId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        showToast(`✅ Đã cập nhật phiếu #${currentEditId}`, "success");
+      }
+    } else {
+      // Create new
+      res = await fetch(API_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        const result = await res.json();
+        showToast(`✅ Đã tạo phiếu #${result.upload_id}`, "success");
+      }
+    }
     
-    if (!res.ok) throw new Error("Tạo phiếu thất bại");
+    if (!res.ok) throw new Error("Thao tác thất bại");
     
-    const result = await res.json();
-    showToast(`✅ Đã tạo phiếu #${result.upload_id}`, "success");
-    closeCreateModal();
+    closeEditModal();
     await fetchUploads();
   } catch (err) {
-    console.error("Create error:", err);
-    showToast("Không thể tạo phiếu!", "error");
+    console.error("Submit error:", err);
+    showToast("Không thể lưu phiếu!", "error");
   }
 }
 
+// Submit upload for approval
 async function submitUpload(id) {
   if (!confirm(`Xác nhận gửi phiếu #${id} lên admin duyệt?`)) return;
   
@@ -221,6 +298,29 @@ async function submitUpload(id) {
   }
 }
 
+// Delete upload
+async function deleteUpload(id) {
+  if (!confirm(`Bạn chắc chắn muốn xóa phiếu #${id}?`)) return;
+  
+  try {
+    const res = await fetch(`${API_BASE}/${id}`, {
+      method: "DELETE"
+    });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.detail || "Xóa thất bại");
+    }
+    
+    showToast(`✅ Đã xóa phiếu #${id}`, "success");
+    await fetchUploads();
+  } catch (err) {
+    console.error("Delete error:", err);
+    showToast(err.message || "Không thể xóa phiếu!", "error");
+  }
+}
+
+// View detail
 async function viewDetail(id) {
   const upload = uploads.find(u => u.id === id);
   if (!upload) return;
@@ -305,6 +405,7 @@ function closeDetailModal() {
   detailModal.classList.remove("active");
 }
 
+// Filter & Search
 function filterUploads() {
   const search = searchInput.value.toLowerCase().trim();
   const status = statusFilter.value;
@@ -329,9 +430,8 @@ function filterUploads() {
 searchInput.addEventListener("input", filterUploads);
 statusFilter.addEventListener("change", filterUploads);
 
-
-createModal.addEventListener("click", (e) => {
-  if (e.target === createModal) closeCreateModal();
+editModal.addEventListener("click", (e) => {
+  if (e.target === editModal) closeEditModal();
 });
 
 detailModal.addEventListener("click", (e) => {

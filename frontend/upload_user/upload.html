@@ -36,14 +36,15 @@
     <div class="uploads-grid" id="uploadsGrid"></div>
   </div>
 
-  <div id="createModal" class="modal">
+  <!-- Modal tạo/sửa phiếu -->
+  <div id="editModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Tạo phiếu bảo hành mới</h2>
-        <span class="close-btn" onclick="closeCreateModal()">&times;</span>
+        <h2 id="modalTitle">Tạo phiếu bảo hành mới</h2>
+        <span class="close-btn" onclick="closeEditModal()">&times;</span>
       </div>
       
-      <form id="createForm" onsubmit="submitCreate(event)">
+      <form id="editForm" onsubmit="submitForm(event)">
         <div class="form-group">
           <label for="vin">Mã VIN xe <span class="required">*</span></label>
           <input type="text" id="vin" required placeholder="Nhập mã VIN" />
@@ -76,13 +77,14 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeCreateModal()">Hủy</button>
-          <button type="submit" class="btn-save">Tạo phiếu</button>
+          <button type="button" class="btn-cancel" onclick="closeEditModal()">Hủy</button>
+          <button type="submit" class="btn-save" id="submitBtn">Tạo phiếu</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Modal xem chi tiết -->
   <div id="detailModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
