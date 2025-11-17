@@ -1,5 +1,11 @@
+// File: src/views/Dashboard/Allocations.js (hoặc tên file tương tự)
+// (Đã sửa lỗi)
+
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+// ✅ SỬA LỖI: Import "api" (file đã cấu hình) thay vì "axios" (gốc)
+import api from "api/api"; // (Đảm bảo đường dẫn này trỏ đúng đến file src/api/api.js)
+
+// (Import các component Material UI)
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import TextField from "@mui/material/TextField";
@@ -16,10 +22,19 @@ export default function Allocations() {
   const [center, setCenter] = useState("");
   const [quantity, setQuantity] = useState("");
   const [message, setMessage] = useState("");
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+  
+  // ✅ SỬA LỖI: Xóa API_URL, vì "api" đã có baseURL
+  // const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
   useEffect(() => {
-    axios.get(`${API_URL}/parts`).then((res) => setParts(res.data));
+    // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+    // Interceptor sẽ tự động đính kèm Token
+    api.get("/parts/")
+      .then((res) => setParts(res.data))
+      .catch((err) => {
+        console.error("Lỗi khi tải Parts:", err);
+        setMessage("❌ Lỗi khi tải danh sách phụ tùng!");
+      });
   }, []);
 
   const handleAllocate = async () => {
@@ -28,11 +43,14 @@ export default function Allocations() {
       return;
     }
     try {
-      await axios.post(`${API_URL}/allocations`, null, {
+      // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+      // Interceptor sẽ tự động đính kèm Token
+      await api.post("/allocations", null, { // (Giả sử endpoint tên là /allocations)
         params: { part_id: partId, service_center: center, quantity: parseInt(quantity) },
       });
       setMessage("✅ Phân bổ thành công!");
-    } catch {
+    } catch (err) {
+      console.error("Lỗi khi phân bổ:", err);
       setMessage("❌ Lỗi khi phân bổ phụ tùng!");
     }
   };
@@ -89,7 +107,7 @@ export default function Allocations() {
                 </Grid>
               </Grid>
               {message && (
-                <MDTypography color="secondary" mt={2}>
+                <MDTypography color={message.startsWith("✅") ? "success" : "error"} mt={2}>
                   {message}
                 </MDTypography>
               )}

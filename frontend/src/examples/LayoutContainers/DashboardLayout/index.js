@@ -1,24 +1,7 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
+// File: src/examples/LayoutContainers/DashboardLayout/index.js (Hoàn chỉnh)
 
 import { useEffect } from "react";
-
-// react-router-dom components
 import { useLocation } from "react-router-dom";
-
-// prop-types is a library for typechecking of props.
 import PropTypes from "prop-types";
 
 // Material Dashboard 2 React components
@@ -26,6 +9,16 @@ import MDBox from "components/MDBox";
 
 // Material Dashboard 2 React context
 import { useMaterialUIController, setLayout } from "context";
+
+// Material Dashboard 2 React examples
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import Sidenav from "examples/Sidenav";
+
+// ✅ BƯỚC 1: SỬA LỖI - Thêm lại import cho Footer
+import Footer from "examples/Footer";
+
+// Import file routes.js của bạn
+import routes from "routes";
 
 function DashboardLayout({ children }) {
   const [controller, dispatch] = useMaterialUIController();
@@ -36,6 +29,11 @@ function DashboardLayout({ children }) {
     setLayout(dispatch, "dashboard");
   }, [pathname]);
 
+  // Trích xuất đúng mảng routes cho Sidenav
+  const adminRoutes = routes.find(
+    (route) => route.key === "admin-wrapper"
+  )?.children || [];
+
   return (
     <MDBox
       sx={({ breakpoints, transitions, functions: { pxToRem } }) => ({
@@ -44,19 +42,27 @@ function DashboardLayout({ children }) {
 
         [breakpoints.up("xl")]: {
           marginLeft: miniSidenav ? pxToRem(120) : pxToRem(274),
-          transition: transitions.create(["margin-left", "margin-right"], {
+          transition: transitions.create(["margin-left"], {
             easing: transitions.easing.easeInOut,
             duration: transitions.duration.standard,
           }),
         },
       })}
     >
-      {children}
+      {/* Truyền adminRoutes (đã trích xuất) vào Sidenav */}
+      <Sidenav
+        routes={adminRoutes}
+      />
+      
+      <DashboardNavbar />
+      <MDBox py={3}>{children}</MDBox>
+      
+      {/* ✅ BƯỚC 2: Component này giờ đã hợp lệ vì đã được import */}
+      <Footer />
     </MDBox>
   );
 }
 
-// Typechecking props for the DashboardLayout
 DashboardLayout.propTypes = {
   children: PropTypes.node.isRequired,
 };

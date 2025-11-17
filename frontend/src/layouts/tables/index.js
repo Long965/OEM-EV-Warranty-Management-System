@@ -1,6 +1,9 @@
 /* eslint-disable prettier/prettier */
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+// ✅ SỬA LỖI: Import "api" (file đã cấu hình) thay vì "axios" (gốc)
+import api from "../../api/api"; // (Đảm bảo đường dẫn này trỏ đúng đến file src/api/api.js)
+
+// (Import các component Material UI)
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import TextField from "@mui/material/TextField";
@@ -32,11 +35,14 @@ function Parts() {
     supplier: "",
   });
 
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+  // ✅ SỬA LỖI: Xóa API_URL, vì "api" đã có baseURL
+  // const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
   const fetchParts = async () => {
     try {
-      const res = await axios.get(`${API_URL}/parts/`);
+      // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+      // Interceptor sẽ tự động đính kèm Token
+      const res = await api.get("/parts/");
       setParts(res.data);
     } catch (err) {
       console.error("API fetch error:", err);
@@ -83,10 +89,12 @@ function Parts() {
   const handleSubmit = async () => {
     try {
       if (editPart) {
-        const res = await axios.put(`${API_URL}/parts/${editPart.id}`, formData);
+        // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+        const res = await api.put(`/parts/${editPart.id}`, formData);
         setParts((prev) => prev.map((p) => (p.id === editPart.id ? res.data : p)));
       } else {
-        const res = await axios.post(`${API_URL}/parts/`, formData);
+        // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+        const res = await api.post("/parts/", formData);
         setParts((prev) => [...prev, res.data]);
       }
       handleCloseModal();
@@ -98,7 +106,8 @@ function Parts() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this part?")) return;
     try {
-      await axios.delete(`${API_URL}/parts/${id}`);
+      // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+      await api.delete(`/parts/${id}`);
       setParts((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
       console.error("Delete error:", err);

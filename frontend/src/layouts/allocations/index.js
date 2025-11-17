@@ -1,109 +1,116 @@
-/* eslint-disable prettier/prettier */
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+// File: src/views/Dashboard/Allocations.js (hoặc tên file tương tự)
+// (Đã sửa lỗi)
+
+import React, { useState, useEffect } from "react";
+// ✅ SỬA LỖI: Import "api" (file đã cấu hình) thay vì "axios" (gốc)
+import api from "api/api"; // (Đảm bảo đường dẫn này trỏ đúng đến file src/api/api.js)
+
+// (Import các component Material UI)
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import InputLabel from "@mui/material/InputLabel";
-import FormControl from "@mui/material/FormControl";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
-import DataTable from "examples/Tables/DataTable";
 
 export default function Allocations() {
-  const [allocs, setAllocs] = useState([]);
   const [parts, setParts] = useState([]);
-  const [centers, setCenters] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ part_id: "", quantity: 0, to_center: "" });
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
-
-  const load = async () => {
-    try {
-      const [r1, r2, r3] = await Promise.all([
-        axios.get(`${API_URL}/allocations/`), // list allocations
-        axios.get(`${API_URL}/parts/`),
-        axios.get(`${API_URL}/service_centers/`), // or /service-centers/
-      ]);
-      setAllocs(r1.data);
-      setParts(r2.data);
-      setCenters(r3.data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [partId, setPartId] = useState("");
+  const [center, setCenter] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [message, setMessage] = useState("");
+  
+  // ✅ SỬA LỖI: Xóa API_URL, vì "api" đã có baseURL
+  // const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
   useEffect(() => {
-    load();
+    // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+    // Interceptor sẽ tự động đính kèm Token
+    api.get("/parts/")
+      .then((res) => setParts(res.data))
+      .catch((err) => {
+        console.error("Lỗi khi tải Parts:", err);
+        setMessage("❌ Lỗi khi tải danh sách phụ tùng!");
+      });
   }, []);
 
-  const submit = async () => {
+  const handleAllocate = async () => {
+    if (!partId || !center || !quantity) {
+      setMessage("Vui lòng nhập đủ thông tin!");
+      return;
+    }
     try {
-      const res = await axios.post(`${API_URL}/allocations/`, form);
-      setAllocs((prev) => [...prev, res.data]);
-      setForm({ part_id: "", quantity: 0, to_center: "" });
-    } catch (e) {
-      console.error(e);
+      // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+      // Interceptor sẽ tự động đính kèm Token
+      await api.post("/allocations", null, { // (Giả sử endpoint tên là /allocations)
+        params: { part_id: partId, service_center: center, quantity: parseInt(quantity) },
+      });
+      setMessage("✅ Phân bổ thành công!");
+    } catch (err) {
+      console.error("Lỗi khi phân bổ:", err);
+      setMessage("❌ Lỗi khi phân bổ phụ tùng!");
     }
   };
-
-  const columns = [
-    { Header: "ID", accessor: "id", align: "center" },
-    { Header: "Part", accessor: "part", align: "left" },
-    { Header: "Số lượng", accessor: "quantity", align: "center" },
-    { Header: "Tới trung tâm", accessor: "to_center", align: "left" },
-    { Header: "Ngày", accessor: "created_at", align: "center" },
-  ];
-
-  const rows = allocs.map((a) => ({
-    id: a.id,
-    part: a.part?.name || a.part_id,
-    quantity: a.quantity,
-    to_center: a.to_center?.name || a.to_center,
-    created_at: a.created_at ? new Date(a.created_at).toLocaleString() : "-",
-  }));
 
   return (
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox pt={6} pb={3}>
-        <Grid container spacing={6}>
-          <Grid item xs={12}>
-            <Card>
-              <MDBox mx={2} mt={-3} py={3} px={2} variant="gradient" bgColor="primary" borderRadius="lg" coloredShadow="primary" display="flex" justifyContent="space-between" alignItems="center">
-                <MDTypography variant="h6" color="white">Phân bổ phụ tùng (Allocations)</MDTypography>
-              </MDBox>
-
-              <MDBox p={2} display="flex" gap={2} flexWrap="wrap">
-                <FormControl sx={{ minWidth: 220 }}>
-                  <InputLabel id="part-label">Chọn phụ tùng</InputLabel>
-                  <Select labelId="part-label" value={form.part_id} label="Chọn phụ tùng" onChange={(e) => setForm({ ...form, part_id: e.target.value })}>
-                    {parts.map((p) => <MenuItem value={p.id} key={p.id}>{p.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <TextField label="Số lượng" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} />
-                <FormControl sx={{ minWidth: 220 }}>
-                  <InputLabel id="center-label">Tới</InputLabel>
-                  <Select labelId="center-label" value={form.to_center} label="Tới" onChange={(e) => setForm({ ...form, to_center: e.target.value })}>
-                    {centers.map((c) => <MenuItem value={c.id} key={c.id}>{c.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <Button variant="contained" color="secondary" onClick={submit}>Tạo phân bổ</Button>
-              </MDBox>
-
-              <MDBox pt={3}>
-                {loading ? <MDTypography align="center">Loading...</MDTypography> :
-                  <DataTable table={{ columns, rows }} isSorted={false} entriesPerPage={false} showTotalEntries={false} noEndBorder />
-                }
-              </MDBox>
+        <Grid container justifyContent="center">
+          <Grid item xs={12} md={8}>
+            <Card sx={{ p: 3 }}>
+              <MDTypography variant="h6" mb={2}>
+                Phân bổ phụ tùng cho trung tâm dịch vụ
+              </MDTypography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="-- Chọn phụ tùng --"
+                    SelectProps={{ native: true }}
+                    value={partId}
+                    onChange={(e) => setPartId(e.target.value)}
+                  >
+                    <option value=""></option>
+                    {parts.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    label="Trung tâm dịch vụ"
+                    fullWidth
+                    value={center}
+                    onChange={(e) => setCenter(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    label="Số lượng"
+                    type="number"
+                    fullWidth
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button variant="contained" color="info" onClick={handleAllocate}>
+                    Xác nhận phân bổ
+                  </Button>
+                </Grid>
+              </Grid>
+              {message && (
+                <MDTypography color={message.startsWith("✅") ? "success" : "error"} mt={2}>
+                  {message}
+                </MDTypography>
+              )}
             </Card>
           </Grid>
         </Grid>

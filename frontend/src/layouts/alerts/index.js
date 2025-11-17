@@ -1,6 +1,9 @@
 /* eslint-disable prettier/prettier */
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+// ✅ SỬA LỖI: Import "api" (file đã cấu hình) thay vì "axios" (gốc)
+import api from "../../api/api"; // (Đảm bảo đường dẫn này trỏ đúng đến file src/api/api.js)
+
+// (Import các component Material UI)
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import MDBox from "components/MDBox";
@@ -10,26 +13,26 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 import DataTable from "examples/Tables/DataTable";
 import Button from "@mui/material/Button";
-import { Alert } from "@mui/material"; // SỬA ĐỔI: Thêm Alert để báo lỗi
+import { Alert } from "@mui/material"; 
 
 export default function Alerts() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // SỬA ĐỔI: Thêm state cho lỗi
+  const [error, setError] = useState(null); 
   
-  // API_URL của bạn đã đúng
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+  // ✅ SỬA LỖI: Xóa API_URL, vì "api" đã có baseURL
+  // const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
   const load = async () => {
     setLoading(true);
-    setError(null); // Xóa lỗi cũ
+    setError(null); 
     try {
-      // ĐÚNG: Gọi đến http://localhost:8000/alerts/
-      const res = await axios.get(`${API_URL}/alerts/`);
+      // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+      // Interceptor sẽ tự động đính kèm Token
+      const res = await api.get("/alerts/");
       setAlerts(res.data);
     } catch (e) {
       console.error(e);
-      // SỬA ĐỔI: Hiển thị lỗi cho người dùng
       setError("Không thể tải dữ liệu. Vui lòng kiểm tra kết nối hoặc thử lại."); 
     } finally {
       setLoading(false);
@@ -40,24 +43,21 @@ export default function Alerts() {
     load();
   }, []);
 
-  // Cột (Columns) - Giữ nguyên
+  // Cột (Columns)
   const columns = [
-    { Header: "Partname", accessor: "part_name", align: "center" },
-    { Header: "Part", accessor: "part", align: "left" },
-    { Header: "Type", accessor: "type", align: "center" },
+    { Header: "Part Name", accessor: "part_name", align: "left" },
     { Header: "Quantity", accessor: "quantity", align: "center" },
-    { Header: "Message", accessor: "message", align: "left" },
-    { Header: "Date", accessor: "created_at", align: "center" },
+    // (Bạn có thể thêm các cột khác nếu API trả về)
+    // { Header: "Message", accessor: "message", align: "left" },
+    // { Header: "Date", accessor: "created_at", align: "center" },
   ];
 
-  // SỬA LỖI (BUG): Key trong 'rows' phải khớp với 'accessor' trong 'columns'
+  // Hàng (Rows)
   const rows = alerts.map((a) => ({
-    part_name: a.part_name, // Lỗi ở đây (trước đây là 'name')
-    part: a.part?.name || a.part_id, // Giữ nguyên, cách xử lý này rất tốt
-    type: a.type,
+    part_name: a.part_name, 
     quantity: a.quantity,
-    message: a.message,
-    created_at: a.created_at ? new Date(a.created_at).toLocaleString() : "-",
+    // message: a.message,
+    // created_at: a.created_at ? new Date(a.created_at).toLocaleString() : "-",
   }));
 
   return (
@@ -74,7 +74,6 @@ export default function Alerts() {
                 </Button>
               </MDBox>
 
-              {/* SỬA ĐỔI: Hiển thị lỗi hoặc loading */}
               <MDBox p={3}>
                 {loading && <MDTypography align="center">Loading...</MDTypography>}
                 {error && <Alert severity="error">{error}</Alert>}

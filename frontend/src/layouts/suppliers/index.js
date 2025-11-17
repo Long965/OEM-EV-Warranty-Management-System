@@ -1,6 +1,9 @@
 /* eslint-disable prettier/prettier */
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+// ✅ SỬA LỖI: Import "api" (file đã cấu hình) thay vì "axios" (gốc)
+import api from "../../api/api"; // (Đảm bảo đường dẫn này trỏ đúng đến file src/api/api.js)
+
+// (Import các component Material UI)
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import TextField from "@mui/material/TextField";
@@ -25,11 +28,14 @@ export default function Suppliers() {
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", address: "" });
 
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+  // ✅ SỬA LỖI: Xóa API_URL, vì "api" đã có baseURL
+  // const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
   const load = async () => {
     try {
-      const res = await axios.get(`${API_URL}/suppliers/`);
+      // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+      // Interceptor sẽ tự động đính kèm Token
+      const res = await api.get("/suppliers/");
       setSuppliers(res.data);
     } catch (e) {
       console.error(e);
@@ -57,10 +63,12 @@ export default function Suppliers() {
   const handleSave = async () => {
     try {
       if (edit) {
-        const res = await axios.put(`${API_URL}/suppliers/${edit.id}`, form);
+        // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+        const res = await api.put(`/suppliers/${edit.id}`, form);
         setSuppliers((prev) => prev.map((p) => (p.id === edit.id ? res.data : p)));
       } else {
-        const res = await axios.post(`${API_URL}/suppliers/`, form);
+        // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+        const res = await api.post("/suppliers/", form);
         setSuppliers((prev) => [...prev, res.data]);
       }
       closeModal();
@@ -72,7 +80,8 @@ export default function Suppliers() {
   const handleDelete = async (id) => {
     if (!window.confirm("Xóa nhà cung cấp?")) return;
     try {
-      await axios.delete(`${API_URL}/suppliers/${id}`);
+      // ✅ SỬA LỖI: Dùng "api" và gọi đường dẫn tương đối
+      await api.delete(`/suppliers/${id}`);
       setSuppliers((prev) => prev.filter((p) => p.id !== id));
     } catch (e) {
       console.error(e);
@@ -107,6 +116,7 @@ export default function Suppliers() {
   return (
     <DashboardLayout>
       <DashboardNavbar />
+      <Appenders>
       <MDBox pt={6} pb={3}>
         <Grid container spacing={6}>
           <Grid item xs={12}>
@@ -128,7 +138,8 @@ export default function Suppliers() {
             </Card>
           </Grid>
         </Grid>
-      </MDBox>
+        </MDBox>
+      </Appenders>
 
       <Modal open={open} onClose={closeModal}>
         <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 420, bgcolor: "background.paper", borderRadius: 2, boxShadow: 24, p: 4 }}>
