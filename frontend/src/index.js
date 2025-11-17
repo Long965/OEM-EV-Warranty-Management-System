@@ -1,33 +1,27 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
+// src/index.js
 
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOM from "react-dom/client"; // Đảm bảo import từ 'react-dom/client'
 import { BrowserRouter } from "react-router-dom";
 import App from "App";
 
-// Material Dashboard 2 React Context Provider
+// Context
 import { MaterialUIControllerProvider } from "context";
+import { AuthProvider } from "context/AuthContext"; // <-- Import AuthProvider
 
-const container = document.getElementById("app");
-const root = createRoot(container);
+// ✅ DÒNG 12 (GÂY LỖI):
+// Lệnh này tìm thẻ <div id="root"> trong public/index.html
+const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
   <BrowserRouter>
     <MaterialUIControllerProvider>
-      <App />
+      {/* ✅ BỌC <App /> BẰNG <AuthProvider>
+        Điều này sửa lỗi 'login' is undefined ở lần trước.
+      */}
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </MaterialUIControllerProvider>
   </BrowserRouter>
 );

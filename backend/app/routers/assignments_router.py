@@ -6,7 +6,7 @@ from app.schemas.assignment_schema import AssignmentOut, AssignmentCreate, Assig
 from app.services.assignment_service import AssignmentService
 from typing import List
 
-router = APIRouter(prefix="/assignments", tags=["Assignments"])
+router = APIRouter(tags=["Assignments"])
 
 @router.get("/", response_model=List[AssignmentOut])
 def list_assignments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):

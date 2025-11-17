@@ -1,86 +1,65 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
-from shared import db
-from auth_service import models, schemas, utils, jwt_handler
-from datetime import datetime, timedelta, timezone
-import os
-import requests
+# auth_service/main.py
 
-USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user_service:8002")
+from fastapi import FastAPI, Depends, HTTPException, APIRouter # <-- 1. Thêm APIRouter
+from sqlalchemy.orm import Session
+from starlette.status import HTTP_401_UNAUTHORIZED
+
+# ✅ SỬA LỖI IMPORT: Dùng import trực tiếp
+import models
+import schemas
+import utils
+import jwt_handler
+from shared import db 
 
 app = FastAPI(title="Auth Service")
 
+# --- 2. Tạo một Router mới ---
+router = APIRouter()
 
-# 🟢 REGISTER
-@app.post("/register")
-def register(payload: schemas.RegisterIn, session: Session = Depends(db.get_db)):
-    allowed_roles = ["SC_Staff", "SC_Technician", "EVM_Staff"]
+@app.get("/")
+def root():
+    return {"status": "Auth Service is running"}
 
-    # ❌ Không cho tự đăng ký Admin
-    if payload.role_name == "Admin":
-        raise HTTPException(status_code=403, detail="Cannot register as Admin")
+# --- API Đăng Ký (Register) ---
+# 3. Thay đổi @app.post thành @router.post
+@router.post("/register", response_model=schemas.UserOut) 
+def create_user(user_in: schemas.RegisterIn, db_session: Session = Depends(db.get_db)):
+    db_user_email = utils.get_user_by_email(db_session, email=user_in.email)
+    if db_user_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+        
+    db_user_name = utils.get_user_by_username(db_session, username=user_in.username)
+    if db_user_name:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    return utils.create_user(db_session=db_session, user=user_in)
 
-    if payload.role_name not in allowed_roles:
-        raise HTTPException(status_code=400, detail="Invalid role")
-
-    # 🔍 Kiểm tra role tồn tại
-    role = session.query(models.Role).filter_by(role_name=payload.role_name).first()
-    if not role:
-        raise HTTPException(status_code=404, detail="Role not found")
-
-    # 🔍 Kiểm tra username trùng
-    if session.query(models.User).filter_by(username=payload.username).first():
-        raise HTTPException(status_code=400, detail="Username already exists")
-
-    # ✅ Tạo user
-    new_user = models.User(
-        username=payload.username,
-        password_hash=utils.hash_password(payload.password),
-        email=payload.email,
-        role_id=role.role_id
+# --- API Đăng Nhập (Login) ---
+# 4. Thay đổi @app.post thành @router.post
+@router.post("/login", response_model=schemas.TokenOut)
+def login_for_access_token(
+    login_data: schemas.LoginIn,
+    db_session: Session = Depends(db.get_db)
+):
+    user = utils.authenticate_user(
+        db_session, 
+        username=login_data.username,
+        password=login_data.password
     )
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-
-    # 🔹 Gửi request tạo profile sang user_service
-    try:
-        requests.post(
-            f"{USER_SERVICE_URL}/profiles",
-            json={
-                "user_id": new_user.user_id,
-                "full_name": payload.username,  # tạm thời đặt full_name = username
-                "is_active": True
-            },
-            timeout=5
+    
+    if not user:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    except Exception as e:
-        print(f"⚠️ Could not create profile for user_id={new_user.user_id}: {e}")
-
-    return {"message": f"User '{payload.username}' registered successfully"}
-
-
-# 🟢 LOGIN
-@app.post("/login", response_model=schemas.TokenOut)
-def login(payload: schemas.LoginIn, session: Session = Depends(db.get_db)):
-    user = session.query(models.User).filter_by(username=payload.username).first()
-    if not user or not utils.verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    # ✅ Tạo JWT token
-    token = jwt_handler.create_access_token({
-        "sub": user.username,
-        "role": user.role.role_name
-    })
-
-    # ✅ Lưu token vào DB
-    new_token = models.Token(
-        user_id=user.user_id,
-        access_token=token,
-        issued_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
+        
+    access_token = jwt_handler.create_access_token(
+        data={"sub": user.email, "role": user.role.role_name} 
     )
-    session.add(new_token)
-    session.commit()
+    
+    return {"access_token": access_token, "token_type": "bearer"}
 
-    return {"access_token": token, "token_type": "bearer"}
+# --- 5. Thêm Router vào App với Prefix ---
+# ✅ SỬA LỖI 404: Thêm prefix="/auth"
+app.include_router(router, prefix="/auth")

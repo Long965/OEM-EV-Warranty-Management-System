@@ -1,38 +1,44 @@
-# gateway/app/routes/inventory_router.py
-from fastapi import APIRouter, Request
-from app.utils.proxy import proxy_request
+# File: gateway/app/routes/inventory_router.py
+
 import os
-
-# Import decorator phân quyền
+from fastapi import APIRouter, Request
 from app.middleware.role_guard import require_roles
-
-BASE_URL_BACKEND = os.environ.get("BACKEND_URL", "http://backend:8100") 
+from app.utils.proxy import proxy_request 
 
 router = APIRouter(
     tags=["Inventory (Admin Only)"] 
 )
 
+# ✅ SỬA LỖI: Lấy BACKEND_URL từ biến môi trường
+BACKEND_URL = os.getenv("BACKEND_URL")
+ROLE_ADMIN = "Admin" 
+
 @router.get("/")
-@require_roles("admin") # <-- BẢO VỆ
+@require_roles(ROLE_ADMIN) 
 async def list_inventory(request: Request):
-    return await proxy_request(request, BASE_URL_BACKEND)
+    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
+    return await proxy_request(request, BACKEND_URL)
 
 @router.post("/")
-@require_roles("admin") # <-- BẢO VỆ
+@require_roles(ROLE_ADMIN) 
 async def create_inventory_item(request: Request):
-    return await proxy_request(request, BASE_URL_BACKEND)
+    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
+    return await proxy_request(request, BACKEND_URL)
 
-@router.get("/{inventory_id}") 
-@require_roles("admin") # <-- BẢO VỆ
+@router.get("/{item_id}")
+@require_roles(ROLE_ADMIN) 
 async def get_inventory_item(request: Request):
-    return await proxy_request(request, BASE_URL_BACKEND)
+    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
+    return await proxy_request(request, BACKEND_URL)
 
-@router.put("/{inventory_id}") 
-@require_roles("admin") # <-- BẢO VỆ
+@router.put("/{item_id}")
+@require_roles(ROLE_ADMIN) 
 async def update_inventory_item(request: Request):
-    return await proxy_request(request, BASE_URL_BACKEND)
+    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
+    return await proxy_request(request, BACKEND_URL)
 
-@router.delete("/{inventory_id}") 
-@require_roles("admin") # <-- BẢO VỆ
+@router.delete("/{item_id}")
+@require_roles(ROLE_ADMIN) 
 async def delete_inventory_item(request: Request):
-    return await proxy_request(request, BASE_URL_BACKEND)
+    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
+    return await proxy_request(request, BACKEND_URL)

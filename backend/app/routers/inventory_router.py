@@ -7,7 +7,7 @@ from app.services.inventory_service import InventoryService
 from app.services.alert_service import AlertService
 from app.schemas.inventory_schema import InventoryCreate, InventoryOut
 
-router = APIRouter(prefix="/inventory", tags=["Inventory"])
+router = APIRouter(tags=["Inventory"])
 
 @router.get("/", response_model=List[InventoryOut])
 def list_inventories(db: Session = Depends(get_db)):

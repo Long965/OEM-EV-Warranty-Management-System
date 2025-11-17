@@ -1,24 +1,50 @@
 services:
-  # 🌐 API GATEWAY (MAIN ENTRY)
+  # 🌐 API GATEWAY (Cổng 8000)
   gateway:
     build:
       context: ./gateway
       dockerfile: Dockerfile
     container_name: micro_gateway
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     depends_on:
       backend:
         condition: service_started
+      auth_service: # <-- Cần phụ thuộc vào auth_service
+        condition: service_started
     environment:
+      # ✅ PHẢI CÓ ĐẦY ĐỦ CÁC BIẾN NÀY
       BACKEND_URL: http://backend:8100
+      AUTH_URL: http://auth_service:8001 
+      JWT_SECRET: "very-secret-change-me" # <-- ĐỒNG BỘ VỚI AUTH
     volumes:
       - ./gateway:/app
     networks:
       - app_net
     restart: always
 
-  # ⚙️ BACKEND FASTAPI
+  # 🔐 AUTH SERVICE (Cổng 8001) - ĐÃ THÊM LẠI
+  auth_service:
+    build:
+      context: . # <-- Đảm bảo đường dẫn này đúng
+      dockerfile: ./auth_service/Dockerfile 
+    container_name: oem_ev_auth_service
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload # (Giả sử file main.py)
+    environment:
+      DATABASE_URL: "mysql+pymysql://root:root@mysql-db:3306/ev_warranty_db" # (Giả sử DB)
+      JWT_SECRET: "very-secret-change-me" # <-- ĐỒNG BỘ VỚI GATEWAY
+      PYTHONPATH: /app
+    ports:
+      - "8001:8001"
+    depends_on:
+      mysql-db: 
+        condition: service_healthy 
+    networks:
+      - app_net
+    restart: always
+
+  # ⚙️ BACKEND FASTAPI (Cổng 8100)
   backend:
     build:
       context: ./backend
@@ -43,14 +69,36 @@ services:
     networks:
       - app_net
 
-  # 🗄️ MYSQL Database
+  # 💻 Frontend React (Cổng 3000)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: oem_ev_warranty_frontend
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      # ✅ SỬA LỖI: Trình duyệt phải gọi localhost, không phải "gateway"
+      - REACT_APP_API_BASE=http://localhost:8000/api
+      - DISABLE_ESLINT_PLUGIN=true
+    stdin_open: true
+    tty: true
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway:
+        condition: service_started
+    networks:
+      - app_net
+
+  # 🗄️ MYSQL Database (Cổng 3308)
   mysql-db:
     image: mysql:8.0
     container_name: oem_ev_warranty_mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: warehouse_management
+      # ✅ Đảm bảo DB 'ev_warranty_db' được tạo
+      MYSQL_DATABASE: warehouse_management,ev_warranty_db
       TZ: Asia/Ho_Chi_Minh
     ports:
       - "3308:3306"
@@ -71,25 +119,6 @@ services:
     container_name: oem_ev_warranty_redis
     expose:
       - "6379"
-    networks:
-      - app_net
-
-  # 💻 Frontend React
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: oem_ev_warranty_frontend
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_API_BASE=http://gateway:8000/api
-    stdin_open: true
-    tty: true
-    ports:
-      - "3000:3000"
-    depends_on:
-      gateway:
-        condition: service_started
     networks:
       - app_net
 

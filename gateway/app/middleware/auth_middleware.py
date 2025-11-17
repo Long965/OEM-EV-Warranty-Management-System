@@ -1,3 +1,5 @@
+# File: gateway/app/middleware/auth_middleware.py (Hoàn chỉnh - Sửa lỗi Logic)
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request, HTTPException
 from app.core.jwt_handler import decode_token, InvalidToken
@@ -5,8 +7,18 @@ from app.core.jwt_handler import decode_token, InvalidToken
 class AuthMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, exempt_paths=None):
         super().__init__(app)
-        # exempt_paths: list of path prefixes that don't require JWT (login, register, health...)
-        self.exempt_paths = exempt_paths or ["/auth/login", "/auth/register", "/"]
+        # 1. Lưu lại các đường dẫn CHÍNH XÁC (exact paths) từ main.py
+        # (Chủ yếu là cho trang chủ "/")
+        self.exempt_exact_paths = exempt_paths or []
+        
+        # 2. ĐỊNH NGHĨA CỨNG (Hardcode) các prefix (tiền tố) cần bỏ qua
+        # (Tách biệt khỏi exempt_paths)
+        self.exempt_prefixes = [
+            "/auth/login", 
+            "/auth/register",
+            "/docs",
+            "/openapi.json"
+        ]
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
@@ -14,22 +26,39 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        if any(path.startswith(p) for p in self.exempt_paths):
+        # 1. Kiểm tra "exact match" (khớp chính xác)
+        # Ví dụ: "/" (trang chủ)
+        if path in self.exempt_exact_paths:
             return await call_next(request)
 
-        auth_header = request.headers.get("Authorization")
+        # 2. Kiểm tra "prefix" (bắt đầu bằng)
+        # Ví dụ: "/docs/..." hoặc "/auth/login/..." (nếu có)
+        if any(path.startswith(p) for p in self.exempt_prefixes):
+            return await call_next(request)
+
+        # --- TỪ ĐÂY, /parts/ SẼ ĐƯỢC XỬ LÝ ---
+        # (Vì "/parts/" không có trong exempt_exact_paths
+        #  và không bắt đầu bằng "/auth/..." hoặc "/docs/...")
+
+        auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+        
+        print(f"\n=== AUTH MIDDLEWARE RUNNING ON: {path} ===") # Log
+        
         if not auth_header:
             raise HTTPException(status_code=401, detail="Missing Authorization header")
 
         try:
-            token = auth_header.split(" ")[1] if " " in auth_header else auth_header
-        except Exception:
-            raise HTTPException(status_code=401, detail="Malformed Authorization header")
+            # Đảm bảo logic tách "Bearer "
+            token = auth_header.split(" ")[1]
+        except IndexError:
+            raise HTTPException(status_code=401, detail="Malformed Authorization header (Expected 'Bearer <token>')")
 
         try:
             payload = decode_token(token)
-        except InvalidToken:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        except InvalidToken as e:
+            # Trả về lỗi chi tiết từ jwt_handler
+            raise HTTPException(status_code=401, detail=str(e)) 
 
+        # ✅ GÁN USER VÀO STATE
         request.state.user = payload
         return await call_next(request)

@@ -12,3 +12,4 @@ PyJWT>=2.8.0
 bcrypt==3.2.2  # ✅ fix version to avoid AttributeError
 passlib[bcrypt]==1.7.4
 python-dotenv
+pymysql
