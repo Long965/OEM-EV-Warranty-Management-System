@@ -17,19 +17,19 @@ export default function Navbar() {
           <div className="appbar__nav" style={{ display: 'flex', gap: 6 }}>
             <Link to="/profile">Profile</Link>
            
-            {/* Admin sees Users + Claims Management + History */}
+            {/* Admin: Quản lý Users + Claims + History */}
             {user.role === 'Admin' && (
               <>
                 <Link to="/users">Users</Link>
-                <Link to="/claims">Warranty</Link>
+                <Link to="/claims">Warranty Claims</Link>
                 <Link to="/history">History</Link>
               </>
             )}
            
-            {/* Staff roles see Uploads (create tickets) */}
+            {/* Staff roles: Chỉ tạo Uploads (tickets) */}
             {['SC_Staff', 'SC_Technician', 'EVM_Staff'].includes(user.role) && (
               <>
-                <Link to="/uploads">Create Warranty</Link>
+                <Link to="/uploads">My Warranties</Link>
               </>
             )}
           </div>
@@ -44,11 +44,11 @@ export default function Navbar() {
           ) : (
             <>
               <span className="badge-user">{user.username} ({user.role})</span>
-              <button 
-                className="btn btn-danger" 
-                onClick={async () => { 
-                  await logout(); 
-                  nav('/login') 
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  await logout();
+                  nav('/login')
                 }}
               >
                 Đăng xuất

@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getClaimHistory } from '../api/claims'
-import api from '../api/client'
+import { getClaimHistory, deleteClaimHistory } from '../api/claims'
 
 export default function ClaimHistory() {
   const { user } = useAuth()
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
+
   const isAdmin = user?.role === 'Admin'
 
   const { data = [], isLoading } = useQuery({
@@ -18,21 +18,19 @@ export default function ClaimHistory() {
 
   const filtered = useMemo(() => {
     if (!search.trim()) return data
-    
+
     const q = search.toLowerCase()
     return data.filter(h =>
       h.vehicle_vin?.toLowerCase().includes(q) ||
       h.issue_desc?.toLowerCase().includes(q) ||
       h.action?.toLowerCase().includes(q) ||
+      h.performed_by?.toLowerCase().includes(q) ||
       h.id?.toString().includes(q)
     )
   }, [data, search])
 
   const deleteHistory = useMutation({
-    mutationFn: async (historyId) => {
-      const { data } = await api.delete(`/claims/history/${historyId}`)
-      return data
-    },
+    mutationFn: deleteClaimHistory,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['claim-history'] })
       alert('✅ Đã xóa lịch sử!')
@@ -73,7 +71,7 @@ export default function ClaimHistory() {
         <div className="searchbox">
           <span className="loupe">🔎</span>
           <input
-            placeholder="Tìm theo VIN, hành động..."
+            placeholder="Tìm theo VIN, hành động, người thực hiện..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -93,19 +91,20 @@ export default function ClaimHistory() {
                 <th>VIN</th>
                 <th>Mô tả</th>
                 <th>Hành động</th>
+                <th>Người thực hiện</th>
+                <th>Vai trò</th>
                 <th>Thời gian</th>
                 {isAdmin && <th style={{ width: 100 }}>Thao tác</th>}
               </tr>
             </thead>
-
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="card--pad">Đang tải...</td>
+                  <td colSpan={isAdmin ? 9 : 8} className="card--pad">Đang tải...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="card--pad text-muted">
+                  <td colSpan={isAdmin ? 9 : 8} className="card--pad text-muted">
                     Chưa có lịch sử nào
                   </td>
                 </tr>
@@ -113,7 +112,6 @@ export default function ClaimHistory() {
                 filtered.map(history => (
                   <tr key={history.id}>
                     <td><strong>#{history.id}</strong></td>
-
                     <td>
                       {history.claim_id ? (
                         <span style={{ color: '#2563eb', fontWeight: 500 }}>
@@ -123,18 +121,19 @@ export default function ClaimHistory() {
                         <span style={{ color: '#94a3b8' }}>---</span>
                       )}
                     </td>
-
                     <td>{history.vehicle_vin || '---'}</td>
-
                     <td style={{ maxWidth: 250 }}>
                       {history.issue_desc?.substring(0, 60) || '---'}
                       {history.issue_desc?.length > 60 && '...'}
                     </td>
-
                     <td>{getActionBadge(history.action)}</td>
-
+                    <td>{history.performed_by || '---'}</td>
+                    <td>
+                      <span className={`role-pill role-${history.performed_role === 'admin' ? 'admin' : 'sc_staff'}`}>
+                        {history.performed_role}
+                      </span>
+                    </td>
                     <td style={{ fontSize: 13 }}>{formatDate(history.timestamp)}</td>
-
                     {isAdmin && (
                       <td style={{ textAlign: 'center' }}>
                         <button

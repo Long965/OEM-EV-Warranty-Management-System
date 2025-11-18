@@ -11,8 +11,6 @@ app.include_router(upload_routes.router)
 def root():
     return {"message": "Warranty Upload Service is running"}
 
-upload_routes.setup_static(app)
-
 app.include_router(upload_routes.router)
 
 @app.get("/")

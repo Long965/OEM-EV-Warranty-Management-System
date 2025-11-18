@@ -5,8 +5,6 @@ import { listUploads, deleteUpload, submitUpload } from '../api/uploads'
 import Modal from '../components/Modal'
 import UploadForm from '../components/UploadForm'
 
-const USER_ID = '11111111-1111-1111-1111-111111111111'
-
 const statusClassMap = {
   'Đã gửi': 'sc_staff',
   'Đã duyệt': 'admin',
@@ -24,13 +22,14 @@ export default function UploadsList() {
   const [openView, setOpenView] = useState(false)
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ['uploads', USER_ID],
-    queryFn: () => listUploads(USER_ID)
+    queryKey: ['uploads', user?.user_id],
+    queryFn: () => listUploads(user?.user_id),
+    enabled: !!user
   })
 
   const filtered = useMemo(() => {
     let result = data
-    
+
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(u =>
@@ -40,14 +39,14 @@ export default function UploadsList() {
         u.id?.toString().includes(q)
       )
     }
-    
+
     if (statusFilter !== 'all') {
       result = result.filter(u => {
         const status = typeof u.status === 'object' ? u.status.value : u.status
         return status === statusFilter
       })
     }
-    
+
     return result
   }, [data, search, statusFilter])
 
@@ -56,6 +55,9 @@ export default function UploadsList() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['uploads'] })
       alert('✅ Đã gửi phiếu lên admin!')
+    },
+    onError: (e) => {
+      alert('❌ Lỗi: ' + (e?.response?.data?.detail || 'Không thể gửi phiếu'))
     }
   })
 
@@ -64,6 +66,9 @@ export default function UploadsList() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['uploads'] })
       alert('🗑️ Đã xóa phiếu!')
+    },
+    onError: (e) => {
+      alert('❌ Lỗi: ' + (e?.response?.data?.detail || 'Không thể xóa phiếu'))
     }
   })
 
@@ -146,7 +151,7 @@ export default function UploadsList() {
                   const statusValue = typeof upload.status === 'object' ? upload.status.value : upload.status
                   const isSent = upload.is_sent_to_claim || false
                   const canEdit = statusValue === 'Đã gửi' && !isSent
-                  
+
                   return (
                     <tr key={upload.id}>
                       <td>
@@ -172,7 +177,7 @@ export default function UploadsList() {
                       <td style={{ fontSize: 13 }}>{formatDate(upload.created_at)}</td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          {/* Nút Xem chi tiết - luôn hiện */}
+                          {/* Nút Xem chi tiết */}
                           <button
                             className="icon-btn"
                             title="Xem chi tiết"
@@ -195,11 +200,11 @@ export default function UploadsList() {
                                   if (confirm(`Gửi phiếu #${upload.id} lên admin?`))
                                     submit.mutate(upload.id)
                                 }}
+                                disabled={submit.isPending}
                               >
                                 📤 Gửi
                               </button>
-
-                              {/* Nút Sửa - chỉ hiện khi chưa gửi admin */}
+                              {/* Nút Sửa */}
                               <button
                                 className="icon-btn edit"
                                 title="Sửa"
@@ -213,17 +218,20 @@ export default function UploadsList() {
                             </>
                           )}
 
-                          {/* Nút Xóa - luôn hiện */}
-                          <button
-                            className="icon-btn del"
-                            title="Xóa phiếu"
-                            onClick={() => {
-                              if (confirm(`Xóa phiếu #${upload.id}?\nHành động này không thể hoàn tác.`))
-                                del.mutate(upload.id)
-                            }}
-                          >
-                            🗑
-                          </button>
+                          {/* Nút Xóa - chỉ khi chưa gửi */}
+                          {canEdit && (
+                            <button
+                              className="icon-btn del"
+                              title="Xóa phiếu"
+                              onClick={() => {
+                                if (confirm(`Xóa phiếu #${upload.id}?\nHành động này không thể hoàn tác.`))
+                                  del.mutate(upload.id)
+                              }}
+                              disabled={del.isPending}
+                            >
+                              🗑
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -284,9 +292,9 @@ export default function UploadsList() {
               <strong style={{ color: '#64748b', fontSize: 13 }}>Tệp đính kèm:</strong>
               <div style={{ marginTop: 4 }}>
                 {viewingUpload.file_url ? (
-                  <a 
-                    href={viewingUpload.file_url} 
-                    target="_blank" 
+                  <a
+                    href={viewingUpload.file_url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     style={{ color: '#2563eb', textDecoration: 'underline' }}
                   >

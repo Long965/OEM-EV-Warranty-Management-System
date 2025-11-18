@@ -1,191 +1,203 @@
 from fastapi import APIRouter, HTTPException, Request, Query
 import httpx
 import os
+import jwt
 
 router = APIRouter(prefix="/uploads", tags=["Warranty Upload Gateway"])
 UPLOAD_SERVICE_URL = os.getenv("UPLOAD_SERVICE_URL", "http://warranty-upload-service:8083")
 
-@router.post("/", summary="Nhân viên tạo phiếu bảo hành (proxy)")
+JWT_SECRET = os.getenv("JWT_SECRET", "default-secret")
+JWT_ALGORITHM = "HS256"
+
+
+def decode_token(request: Request):
+    auth = request.headers.get("Authorization")
+    if not auth:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+    token = auth.split(" ")[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+# --------------------------------------------
+# CREATE UPLOAD
+# --------------------------------------------
+@router.post("/", summary="Create Upload (proxy)")
 async def create_upload(request: Request):
-    """Proxy POST /uploads/ → chuyển tiếp tới warranty-upload-service"""
+    user = decode_token(request)
     data = await request.json()
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        resp = await client.post(f"{UPLOAD_SERVICE_URL}/uploads/", json=data)
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{UPLOAD_SERVICE_URL}/uploads/",
+            json=data,
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
+        )
 
     if resp.status_code >= 400:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"Upload Service Error: {resp.text}"
-        )
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()
 
-    try:
-        return resp.json()
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Upload Service returned non-JSON: {resp.text}"
-        )
 
-@router.get("/", summary="Danh sách phiếu bảo hành (proxy)")
-async def list_uploads(created_by: str = Query(None)):
-    """Proxy GET /uploads → chuyển tiếp tới upload service"""
-    params = {}
-    if created_by:
-        params["created_by"] = created_by
-    
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        resp = await client.get(f"{UPLOAD_SERVICE_URL}/uploads/", params=params)
+# --------------------------------------------
+# LIST UPLOADS
+# --------------------------------------------
+@router.get("/", summary="List Uploads")
+async def list_uploads(request: Request):
+    user = decode_token(request)
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{UPLOAD_SERVICE_URL}/uploads/",
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
+        )
 
     if resp.status_code >= 400:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"Upload Service Error: {resp.text}"
-        )
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()
 
-    try:
-        return resp.json()
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Non-JSON from Upload Service: {resp.text}"
-        )
 
-@router.get("/{upload_id}", summary="Lấy chi tiết phiếu (proxy)")
-async def get_upload(upload_id: int):
-    """Proxy GET /uploads/{id} → get single upload"""
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        resp = await client.get(f"{UPLOAD_SERVICE_URL}/uploads/{upload_id}")
+# --------------------------------------------
+# GET SINGLE UPLOAD
+# --------------------------------------------
+@router.get("/{upload_id}", summary="Get Upload (proxy)")
+async def get_upload(upload_id: int, request: Request):
+    user = decode_token(request)
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{UPLOAD_SERVICE_URL}/uploads/{upload_id}",
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
+        )
 
     if resp.status_code >= 400:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"Upload Service Error: {resp.text}"
-        )
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()
 
-    try:
-        return resp.json()
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Non-JSON from Upload Service: {resp.text}"
-        )
 
-@router.put("/{upload_id}", summary="Chỉnh sửa phiếu (proxy)")
+# --------------------------------------------
+# UPDATE UPLOAD
+# --------------------------------------------
+@router.put("/{upload_id}", summary="Update Upload (proxy)")
 async def update_upload(upload_id: int, request: Request):
-    """Proxy PUT /uploads/{id} → update upload"""
+    user = decode_token(request)
     data = await request.json()
-    async with httpx.AsyncClient(follow_redirects=True) as client:
+
+    async with httpx.AsyncClient() as client:
         resp = await client.put(
             f"{UPLOAD_SERVICE_URL}/uploads/{upload_id}",
-            json=data
+            json=data,
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
         )
 
     if resp.status_code >= 400:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"Upload Service Error: {resp.text}"
-        )
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()
 
-    try:
-        return resp.json()
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Non-JSON from Upload Service: {resp.text}"
-        )
 
-@router.delete("/{upload_id}", summary="Xóa phiếu (proxy)")
-async def delete_upload(upload_id: int):
-    """Proxy DELETE /uploads/{id} → delete upload"""
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        resp = await client.delete(f"{UPLOAD_SERVICE_URL}/uploads/{upload_id}")
+# --------------------------------------------
+# DELETE UPLOAD
+# --------------------------------------------
+@router.delete("/{upload_id}", summary="Delete Upload (proxy)")
+async def delete_upload(upload_id: int, request: Request):
+    user = decode_token(request)
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.delete(
+            f"{UPLOAD_SERVICE_URL}/uploads/{upload_id}",
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
+        )
 
     if resp.status_code >= 400:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"Upload Service Error: {resp.text}"
-        )
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()
 
-    try:
-        return resp.json()
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Non-JSON from Upload Service: {resp.text}"
-        )
 
-@router.put("/{upload_id}/submit", summary="Nhân viên gửi phiếu bảo hành (proxy)")
-async def submit_upload(upload_id: int):
-    """Proxy PUT /uploads/{upload_id}/submit → chuyển tiếp tới upload service"""
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        resp = await client.put(f"{UPLOAD_SERVICE_URL}/uploads/{upload_id}/submit")
+# --------------------------------------------
+# SUBMIT UPLOAD
+# --------------------------------------------
+@router.put("/{upload_id}/submit", summary="Submit Upload (proxy)")
+async def submit_upload(upload_id: int, request: Request):
+    user = decode_token(request)
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.put(
+            f"{UPLOAD_SERVICE_URL}/uploads/{upload_id}/submit",
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
+        )
 
     if resp.status_code >= 400:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"Upload Service Error: {resp.text}"
-        )
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()
 
-    try:
-        return resp.json()
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Non-JSON from Upload Service: {resp.text}"
-        )
 
-@router.put("/{upload_id}/sync-status", summary="Đồng bộ trạng thái (proxy)")
-async def sync_status(upload_id: int, status: str = Query(...)):
-    """Proxy status sync from claim service"""
-    async with httpx.AsyncClient(follow_redirects=True) as client:
+# --------------------------------------------
+# SYNC STATUS FROM CLAIM SERVICE
+# --------------------------------------------
+@router.put("/{upload_id}/sync-status", summary="Sync Status (proxy)")
+async def sync_status(upload_id: int, status: str, request: Request):
+    user = decode_token(request)
+
+    async with httpx.AsyncClient() as client:
         resp = await client.put(
             f"{UPLOAD_SERVICE_URL}/uploads/{upload_id}/sync-status",
-            params={"status": status}
+            params={"status": status},
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
         )
 
     if resp.status_code >= 400:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"Upload Service Error: {resp.text}"
-        )
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()
 
-    try:
-        return resp.json()
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Non-JSON from Upload Service: {resp.text}"
-        )
 
-@router.post("/files", summary="Upload files (proxy)")
+# --------------------------------------------
+# FILE UPLOAD (proxy)
+# --------------------------------------------
+@router.post("/files", summary="Upload Files (proxy)")
 async def upload_files(request: Request):
-    """Proxy file uploads"""
-    # Note: For file uploads, we need to handle FormData differently
+    user = decode_token(request)
     form = await request.form()
-    
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        files = []
-        for key, value in form.items():
-            if hasattr(value, 'file'):  # It's a file
-                files.append(
-                    ('files', (value.filename, value.file, value.content_type))
-                )
-        
+
+    files = []
+    for key, value in form.items():
+        if hasattr(value, "file"):
+            files.append(('files', (value.filename, value.file, value.content_type)))
+
+    async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{UPLOAD_SERVICE_URL}/uploads/files",
-            files=files
+            files=files,
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
         )
 
     if resp.status_code >= 400:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"Upload Service Error: {resp.text}"
-        )
-
-    try:
-        return resp.json()
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Non-JSON from Upload Service: {resp.text}"
-        )
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()

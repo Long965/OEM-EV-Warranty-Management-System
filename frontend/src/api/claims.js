@@ -14,33 +14,33 @@ export async function getClaim(claimId) {
   return data
 }
 
-// Create claim
+// Create claim - Chỉ Admin có thể tạo claim trực tiếp
 export async function createClaim(payload) {
   const { data } = await api.post('/claims/', payload)
   return data
 }
 
-// Update claim
+// Update claim - Chỉ Admin có thể cập nhật
 export async function updateClaim(claimId, payload) {
   const { data } = await api.put(`/claims/${claimId}`, payload)
   return data
 }
 
-// Delete claim
-export async function deleteClaim(claimId) {
-  const { data } = await api.delete(`/claims/${claimId}`)
-  return data
-}
-
-// Approve claim
+// Approve claim - Chỉ Admin
 export async function approveClaim(claimId) {
   const { data } = await api.put(`/claims/${claimId}/approve`)
   return data
 }
 
-// Reject claim
+// Reject claim - Chỉ Admin
 export async function rejectClaim(claimId) {
   const { data } = await api.put(`/claims/${claimId}/reject`)
+  return data
+}
+
+// Delete claim - Chỉ Admin
+export async function deleteClaim(claimId) {
+  const { data } = await api.delete(`/claims/${claimId}`)
   return data
 }
 
@@ -52,7 +52,7 @@ export async function getClaimHistory(role = 'user', userId = '01') {
   return data
 }
 
-// Delete claim history
+// Delete history record - Chỉ Admin
 export async function deleteClaimHistory(historyId) {
   const { data } = await api.delete(`/claims/history/${historyId}`)
   return data

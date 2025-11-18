@@ -135,3 +135,16 @@ def list_uploads(db: Session, created_by: str = None):
     if created_by:
         query = query.filter(WarrantyUpload.created_by == created_by)
     return query.order_by(WarrantyUpload.created_at.desc()).all()
+
+def list_uploads_by_role(db: Session, user_id: str, role: str):
+    """List uploads based on user role:
+       - Admin: see ALL
+       - User roles: see ONLY their own uploads
+    """
+    query = db.query(WarrantyUpload)
+
+    # User → only see uploads they created
+    if role != "Admin":
+        query = query.filter(WarrantyUpload.created_by == user_id)
+
+    return query.order_by(WarrantyUpload.created_at.desc()).all()
