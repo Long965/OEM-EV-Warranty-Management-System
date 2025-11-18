@@ -27,6 +27,7 @@ def log_history(db: Session, claim: WarrantyClaim, action: str, user_id: str, ro
 def create_claim(db: Session, data: WarrantyClaimCreate, user_id: str):
     claim = WarrantyClaim(
         vehicle_vin=data.vehicle_vin,
+        customer_name=getattr(data, "customer_name", None),
         part_serial=getattr(data, "part_serial", None),
         issue_desc=data.issue_desc,
         diagnosis_report=getattr(data, "diagnosis_report", None),
@@ -44,7 +45,6 @@ def create_claim(db: Session, data: WarrantyClaimCreate, user_id: str):
         db.rollback()
         traceback.print_exc()
         raise
-
 
 def update_status(db: Session, claim_id: int, status: ClaimStatus, approver_id: str = None):
     claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
@@ -98,6 +98,21 @@ def list_history(db: Session, user_id: str = None, role: str = "user"):
         query = query.filter(ClaimHistory.performed_by == user_id)
     return query.order_by(ClaimHistory.timestamp.desc()).all()
 
+def delete_history(db: Session, history_id: int):
+    """Delete claim history entry"""
+    history = db.query(ClaimHistory).filter(ClaimHistory.id == history_id).first()
+    if not history:
+        return False
+    
+    try:
+        db.delete(history)
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        traceback.print_exc()
+        return False
+
 def update_claim(db: Session, claim_id: int, data: WarrantyClaimCreate, user_id: str):
     """Update claim information"""
     claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
@@ -106,6 +121,7 @@ def update_claim(db: Session, claim_id: int, data: WarrantyClaimCreate, user_id:
 
     try:
         claim.vehicle_vin = data.vehicle_vin
+        claim.customer_name = getattr(data, "customer_name", None)
         claim.part_serial = getattr(data, "part_serial", None)
         claim.issue_desc = data.issue_desc
         claim.diagnosis_report = getattr(data, "diagnosis_report", None)
@@ -120,3 +136,24 @@ def update_claim(db: Session, claim_id: int, data: WarrantyClaimCreate, user_id:
         db.rollback()
         traceback.print_exc()
         raise
+
+def delete_claim(db: Session, claim_id: int):
+    """Delete claim and its related history"""
+    claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
+    if not claim:
+        return False
+    
+    try:
+        # Delete related history entries first (due to foreign key)
+        db.query(ClaimHistory).filter(ClaimHistory.claim_id == claim_id).delete()
+        
+        # Then delete the claim
+        db.delete(claim)
+        db.commit()
+        
+        print(f"[DELETE] Claim {claim_id} deleted successfully")
+        return True
+    except Exception:
+        db.rollback()
+        traceback.print_exc()
+        return False

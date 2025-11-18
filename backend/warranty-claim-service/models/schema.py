@@ -14,19 +14,20 @@ class Attachment(BaseModel):
 
 class WarrantyClaimCreate(BaseModel):
     vehicle_vin: str
-    part_serial: Optional[str]
+    customer_name: Optional[str] = None  # NEW: Customer name
+    part_serial: Optional[str] = None
     issue_desc: str
-    diagnosis_report: Optional[str]
+    diagnosis_report: Optional[str] = None
     attachments: Optional[List[Attachment]] = []
     warranty_cost: Optional[float] = None
 
 class WarrantyClaimResponse(BaseModel):
     id: int
     vehicle_vin: str
+    customer_name: Optional[str] = None  # NEW: Customer name
     status: ClaimStatus
     warranty_cost: Optional[float]
     created_by: Optional[str]
 
     class Config:
         orm_mode = True
-

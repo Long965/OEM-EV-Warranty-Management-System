@@ -6,6 +6,7 @@ services:
       - "8082:8082"
     environment:
       - DB_URL=mysql+pymysql://root:long1234@warranty-mysql:3306/warranty_claim_service
+      - JWT_SECRET=super-secret-key
     depends_on:
       - warranty-mysql
 
@@ -17,6 +18,7 @@ services:
     environment:
       - DB_URL=mysql+pymysql://root:long1234@warranty-mysql:3306/warranty_claim_service
       - CLAIM_SERVICE_URL=http://warranty-claim-service:8082/claims
+      - JWT_SECRET=super-secret-key
     depends_on:
       - warranty-mysql
       - warranty-claim-service
@@ -93,6 +95,7 @@ services:
     depends_on:
       auth_service:
         condition: service_healthy
+        restart: true
       user_service:
         condition: service_started
       warranty-upload-service:
@@ -101,7 +104,19 @@ services:
         condition: service_started
     restart: always
     
-
+  frontend:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm ci || npm install && npm run dev -- --host 0.0.0.0 --port 5174"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    ports:
+      - "5174:5174"
+    depends_on:
+      gateway:
+        condition: service_started
 
 volumes:
   mysql_data:
@@ -109,4 +124,3 @@ volumes:
 #networks:
   #app_net:
     #driver: bridge
-

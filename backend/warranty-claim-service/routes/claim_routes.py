@@ -39,6 +39,14 @@ def get_history(role: str = Query("user"), user_id: str = Query("01"), db: Sessi
     history = claim_service.list_history(db, user_id, role)
     return history
 
+@router.delete("/history/{history_id}")
+def delete_history(history_id: int, db: Session = Depends(get_db)):
+    """Delete claim history entry"""
+    success = claim_service.delete_history(db, history_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="History not found")
+    return {"message": "History deleted successfully"}
+
 @router.get("/{claim_id}")
 def get_claim(claim_id: int, db: Session = Depends(get_db)):
     """Get single claim details for editing"""
@@ -55,3 +63,11 @@ def update_claim(claim_id: int, data: WarrantyClaimCreate, db: Session = Depends
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found")
     return {"message": "Claim updated successfully", "claim_id": claim.id}
+
+@router.delete("/{claim_id}")
+def delete_claim(claim_id: int, db: Session = Depends(get_db)):
+    """Delete claim"""
+    success = claim_service.delete_claim(db, claim_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Claim not found or cannot be deleted")
+    return {"message": "Claim deleted successfully"}

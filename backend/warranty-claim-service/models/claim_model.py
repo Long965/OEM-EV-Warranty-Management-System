@@ -12,6 +12,7 @@ class WarrantyClaim(Base):
     __tablename__ = "warranty_claim"
     id = Column(Integer, primary_key=True, autoincrement=True)
     vehicle_vin = Column(String(50), nullable=False)
+    customer_name = Column(String(100))  # NEW: Customer name field
     part_serial = Column(String(50))
     issue_desc = Column(Text)
     diagnosis_report = Column(Text)

@@ -1,0 +1,27 @@
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  timeout: 20000
+})
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const s = err?.response?.status
+    if (s === 401 || s === 403) {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('auth_user')
+      window.location.href = '/login'
+    }
+    return Promise.reject(err)
+  }
+)
+
+export default api
