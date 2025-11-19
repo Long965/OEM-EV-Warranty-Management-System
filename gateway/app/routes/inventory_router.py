@@ -1,44 +1,43 @@
-# File: gateway/app/routes/inventory_router.py
-
 import os
 from fastapi import APIRouter, Request
 from app.middleware.role_guard import require_roles
-from app.utils.proxy import proxy_request 
+# Lưu ý: Đảm bảo bạn import đúng tên file proxy bạn đang có (proxy hoặc part_proxy)
+from app.utils.part_proxy import proxy_request 
 
-router = APIRouter(
-    tags=["Inventory (Admin Only)"] 
+router = APIRouter( 
+    tags=["Inventory (Admin Only)"]
 )
 
-# ✅ SỬA LỖI: Lấy BACKEND_URL từ biến môi trường
-BACKEND_URL = os.getenv("BACKEND_URL")
+# Backend chạy port 8100
+BACKEND_URL = os.getenv("INVENTORY_SERVICE_URL", "http://oem_ev_warranty_backend:8100")
 ROLE_ADMIN = "Admin" 
 
+# 1. Lấy danh sách
 @router.get("/")
 @require_roles(ROLE_ADMIN) 
 async def list_inventory(request: Request):
-    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
     return await proxy_request(request, BACKEND_URL)
 
+# 2. Tạo mới
 @router.post("/")
 @require_roles(ROLE_ADMIN) 
-async def create_inventory_item(request: Request):
-    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
+async def create_inventory(request: Request):
     return await proxy_request(request, BACKEND_URL)
 
-@router.get("/{item_id}")
+# 3. Lấy chi tiết
+@router.get("/{id}")
 @require_roles(ROLE_ADMIN) 
 async def get_inventory_item(request: Request):
-    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
     return await proxy_request(request, BACKEND_URL)
 
-@router.put("/{item_id}")
+# 4. Cập nhật
+@router.put("/{id}")
 @require_roles(ROLE_ADMIN) 
-async def update_inventory_item(request: Request):
-    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
+async def update_inventory(request: Request):
     return await proxy_request(request, BACKEND_URL)
 
-@router.delete("/{item_id}")
+# 5. Xóa
+@router.delete("/{id}")
 @require_roles(ROLE_ADMIN) 
-async def delete_inventory_item(request: Request):
-    # ✅ SỬA LỖI: Truyền vào BACKEND_URL
+async def delete_inventory(request: Request):
     return await proxy_request(request, BACKEND_URL)

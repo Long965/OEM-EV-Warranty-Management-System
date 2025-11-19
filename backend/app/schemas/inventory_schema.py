@@ -15,3 +15,12 @@ class InventoryOut(InventoryBase):
 
     class Config:
         orm_mode = True
+
+class InventoryUpdate(BaseModel):
+    warehouse: Optional[str] = None
+    quantity: Optional[int] = None
+    min_threshold: Optional[int] = None
+    class Config:
+        orm_mode = True
+# --- IGNORE ---
+

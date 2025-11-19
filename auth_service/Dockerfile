@@ -1,21 +1,25 @@
-# auth_service/Dockerfile
-
 FROM python:3.10-slim
+
 WORKDIR /app
-RUN pip install --upgrade pip
 
-# ✅ SỬA LẠI: Đường dẫn bây giờ phải bao gồm 'auth_service/'
-COPY ./auth_service/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+COPY auth_service/requirements.txt /tmp/requirements-auth.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-auth.txt
+RUN pip install cryptography pymysql
 
-# ✅ SỬA LẠI: Copy code từ 'auth_service/' vào /app
-COPY ./auth_service/ /app/
+# Copy source code
+COPY auth_service/ /app/auth_service/
+COPY shared/ /app/shared/
 
-# ✅ THÊM MỚI: Copy thư mục 'shared/' vào /app/shared
-COPY ./shared/ /app/shared/
-
-# Thiết lập PYTHONPATH để Python tìm thấy cả /app và /app/shared
+# Set Python path
 ENV PYTHONPATH=/app
 
-# Lệnh chạy
-CMD ["sh", "-c", "python init_db.py && uvicorn main:app --host 0.0.0.0 --port 8001"]
+# Expose port
+EXPOSE 8001
+
+# OPTION 1: Nếu main.py nằm trong /app/auth_service/
+CMD ["uvicorn", "auth_service.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+
+# OPTION 2: Nếu muốn chạy trực tiếp từ thư mục auth_service
+# WORKDIR /app/auth_service
+# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

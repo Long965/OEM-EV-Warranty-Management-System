@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.inventory import Inventory
-from app.schemas.inventory_schema import InventoryCreate
+from app.schemas.inventory_schema import InventoryCreate, InventoryUpdate
 
 class InventoryRepository:
     def __init__(self, db: Session):
@@ -41,3 +41,23 @@ class InventoryRepository:
         self.db.commit()
         self.db.refresh(inv)
         return inv
+    
+    def update(self, inventory_id: int, data: InventoryUpdate):
+        inv = self.db.query(Inventory).filter(Inventory.id == inventory_id).first()
+        if not inv:
+            return None
+        for k, v in data.dict(exclude_unset=True).items():
+            setattr(inv, k, v)
+        self.db.commit()
+        self.db.refresh(inv)
+        return inv
+    
+    def delete(self, inventory_id: int):
+        inv = self.db.query(Inventory).filter(Inventory.id == inventory_id).first()
+        if not inv:
+            return None
+        self.db.delete(inv)
+        self.db.commit()
+        return inv  
+    
+

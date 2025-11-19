@@ -1,18 +1,20 @@
-# Base image for Node.js
+# frontend/Dockerfile (Phiên bản Development)
+
 FROM node:18-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Copy package.json và cài đặt dependencies
+# Copy package.json trước để tận dụng cache của Docker
 COPY package*.json ./
+
+# Cài đặt dependencies
 RUN npm install
 
-# Copy toàn bộ source code
+# Copy toàn bộ code
 COPY . .
 
-# Expose port cho React app
+# Mở cổng 3000 (Mặc định của Vite có thể là 5173, nhưng ta sẽ map ra 3000)
 EXPOSE 3000
 
-# Lệnh khởi động React dev server
+# Chạy lệnh start (đã định nghĩa trong package.json là "vite --host")
 CMD ["npm", "start"]

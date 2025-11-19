@@ -17,3 +17,11 @@ class InventoryService:
 
     def change_stock(self, part_id: int, delta: int, warehouse: str | None = None):
         return self.repo.adjust_quantity(part_id, delta, warehouse)
+    
+    def update_inventory(self, inventory_id: int, payload):
+        return self.repo.update(inventory_id, payload)
+    
+    def delete_inventory(self, inventory_id: int):
+        return self.repo.delete(inventory_id)
+    
+   

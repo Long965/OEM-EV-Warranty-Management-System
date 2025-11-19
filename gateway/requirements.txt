@@ -3,3 +3,4 @@ uvicorn
 httpx
 PyJWT
 pydantic[email]
+pydantic-settings  # <--- Thêm dòng này

@@ -3,7 +3,7 @@
 import os
 from fastapi import APIRouter, Request
 from app.middleware.role_guard import require_roles
-from app.utils.proxy import proxy_request 
+from app.utils.part_proxy import proxy_request 
 
 router = APIRouter( 
     tags=["Parts (Admin Only)"]
