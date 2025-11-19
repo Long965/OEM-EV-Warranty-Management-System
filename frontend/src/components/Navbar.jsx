@@ -22,14 +22,15 @@ export default function Navbar() {
               <>
                 <Link to="/users">Users</Link>
                 <Link to="/claims">Warranty Claims</Link>
-                <Link to="/history">History</Link>
+                <Link to="/history">History (Admin)</Link>
               </>
             )}
            
-            {/* Staff roles: Chỉ tạo Uploads (tickets) */}
+            {/* Staff roles: Xem Uploads + Lịch sử cá nhân */}
             {['SC_Staff', 'SC_Technician', 'EVM_Staff'].includes(user.role) && (
               <>
                 <Link to="/uploads">My Warranties</Link>
+                <Link to="/user-history">My History</Link>
               </>
             )}
           </div>

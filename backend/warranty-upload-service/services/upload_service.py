@@ -1,12 +1,36 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# warranty-upload-service/services/upload_service.py
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 from sqlalchemy.orm import Session
-from models.upload_model import WarrantyUpload, UploadStatus
+from models.upload_model import WarrantyUpload, UploadStatus, UploadHistory
 from models.schema import WarrantyUploadCreate
 import requests, os, traceback
 
 CLAIM_SERVICE_URL = os.getenv("CLAIM_SERVICE_URL", "http://warranty-claim-service:8082/claims")
 
-def create_upload(db: Session, data: WarrantyUploadCreate, user_id: str):
-    """Create new upload with submitted status"""
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LOG HISTORY
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def log_history(db: Session, upload: WarrantyUpload, action: str, user_id: str, role: str):
+    try:
+        history = UploadHistory(
+            upload_id=upload.id,
+            vin=upload.vin,
+            action=action,
+            performed_by=user_id,
+            performed_role=role
+        )
+        db.add(history)
+        db.commit()
+    except Exception:
+        db.rollback()
+        traceback.print_exc()
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CREATE UPLOAD
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def create_upload(db: Session, data: WarrantyUploadCreate, user_id: str, role: str):
     upload = WarrantyUpload(
         vin=data.vin,
         customer_name=data.customer_name,
@@ -14,22 +38,21 @@ def create_upload(db: Session, data: WarrantyUploadCreate, user_id: str):
         diagnosis=data.diagnosis,
         file_url=data.file_url,
         warranty_cost=data.warranty_cost,
-        created_by=str(user_id),
+        created_by=user_id,
         status=UploadStatus.submitted
     )
     db.add(upload)
     db.commit()
     db.refresh(upload)
+    log_history(db, upload, "Tạo mới phiếu upload", user_id, role)
     return upload
 
-def update_upload(db: Session, upload_id: int, data: WarrantyUploadCreate):
-    """Update upload - only allowed if status is 'Đã gửi' (submitted)"""
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# UPDATE UPLOAD
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def update_upload(db: Session, upload_id: int, data: WarrantyUploadCreate, user_id: str, role: str):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
-    if not upload:
-        return None
-    
-    # Only allow edit if status is "Đã gửi" (not yet processed by admin)
-    if upload.status != UploadStatus.submitted:
+    if not upload or upload.status != UploadStatus.submitted:
         return None
     
     try:
@@ -39,112 +62,128 @@ def update_upload(db: Session, upload_id: int, data: WarrantyUploadCreate):
         upload.diagnosis = data.diagnosis
         upload.file_url = data.file_url
         upload.warranty_cost = data.warranty_cost
-        
         db.commit()
         db.refresh(upload)
+        log_history(db, upload, "Chỉnh sửa phiếu upload", user_id, role)
         return upload
     except Exception:
         db.rollback()
         traceback.print_exc()
         raise
 
-def delete_upload(db: Session, upload_id: int):
-    """Delete upload - only allowed if status is 'Đã gửi' (submitted)"""
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# DELETE UPLOAD
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def delete_upload(db: Session, upload_id: int, user_id: str, role: str):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
-    if not upload:
-        return False
-    
-    # Only allow delete if status is "Đã gửi" (not yet processed by admin)
-    if upload.status != UploadStatus.submitted:
+    if not upload or upload.status != UploadStatus.submitted:
         return False
     
     try:
+        log_history(db, upload, "Xóa phiếu upload", user_id, role)
         db.delete(upload)
         db.commit()
         return True
-    except Exception:
+    except:
         db.rollback()
         traceback.print_exc()
         return False
 
-def submit_upload(db: Session, upload_id: int):
-    """Submit upload to claim service for approval"""
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SUBMIT UPLOAD (SEND TO CLAIM)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def submit_upload(db: Session, upload_id: int, user_id: str, role: str):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload:
         return None
-
-    # Check if already sent to claim service
+    
     if upload.is_sent_to_claim:
-        print(f"[INFO] Upload {upload_id} already sent to Claim Service")
         return upload
-
-    # Ensure status is submitted
+    
     upload.status = UploadStatus.submitted
     
-    # Sync to claim service
+    payload = {
+        "upload_id": upload.id,
+        "vehicle_vin": upload.vin,
+        "customer_name": upload.customer_name,
+        "part_serial": "AUTO",
+        "issue_desc": upload.description or "",
+        "diagnosis_report": upload.diagnosis or "",
+        "attachments": [{"name": "report", "url": upload.file_url, "type": "link"}],
+        "warranty_cost": float(upload.warranty_cost or 0)
+    }
+    
     try:
-        payload = {
-            "vehicle_vin": upload.vin,
-            "part_serial": "AUTO",
-            "issue_desc": upload.description or "",
-            "diagnosis_report": upload.diagnosis or "",
-            "attachments": [{"name": "report", "url": upload.file_url or "", "type": "link"}],
-            "warranty_cost": float(upload.warranty_cost or 0)
-        }
-        resp = requests.post(CLAIM_SERVICE_URL, json=payload, timeout=5)
+        resp = requests.post(
+            CLAIM_SERVICE_URL,
+            json=payload,
+            headers={"x-user-id": user_id, "x-user-role": role},
+            timeout=5
+        )
         if resp.status_code == 200:
-            # Mark as sent to claim service
             upload.is_sent_to_claim = True
             db.commit()
             db.refresh(upload)
-            print(f"[SYNC] Upload {upload_id} sent to Claim Service successfully")
-        else:
-            print(f"[WARN] Claim Service returned error: {resp.status_code}")
-            return None
-    except Exception as e:
-        print(f"[WARN] Không thể sync sang Claim Service: {e}")
+            log_history(db, upload, "Gửi phiếu lên Claim Service", user_id, role)
+            return upload
+        return None
+    except Exception:
         return None
 
-    return upload
-
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SYNC STATUS FROM CLAIM
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def sync_status_from_claim(db: Session, upload_id: int, status: str):
-    """Sync status from claim service (when approved/rejected)"""
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload:
         return None
     
     try:
-        # Map status from claim service
         if status == "Đã duyệt":
             upload.status = UploadStatus.approved
         elif status == "Từ chối":
             upload.status = UploadStatus.rejected
-        
         db.commit()
         db.refresh(upload)
-        print(f"[SYNC] Upload {upload_id} status updated to: {upload.status.value}")
         return upload
-    except Exception:
+    except:
         db.rollback()
         traceback.print_exc()
         return None
 
-def list_uploads(db: Session, created_by: str = None):
-    """List uploads with optional filter by creator"""
-    query = db.query(WarrantyUpload)
-    if created_by:
-        query = query.filter(WarrantyUpload.created_by == created_by)
-    return query.order_by(WarrantyUpload.created_at.desc()).all()
-
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LIST UPLOADS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def list_uploads_by_role(db: Session, user_id: str, role: str):
-    """List uploads based on user role:
-       - Admin: see ALL
-       - User roles: see ONLY their own uploads
-    """
-    query = db.query(WarrantyUpload)
-
-    # User → only see uploads they created
+    q = db.query(WarrantyUpload)
     if role != "Admin":
-        query = query.filter(WarrantyUpload.created_by == user_id)
+        q = q.filter(WarrantyUpload.created_by == user_id)
+    return q.order_by(WarrantyUpload.created_at.desc()).all()
 
-    return query.order_by(WarrantyUpload.created_at.desc()).all()
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# USER HISTORY - CHỈ XEM LỊCH SỬ CỦA CHÍNH MÌNH
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def list_user_history(db: Session, user_id: str):
+    """
+    ✅ User chỉ xem được lịch sử upload của chính mình
+    Lọc theo performed_by = user_id
+    """
+    return (
+        db.query(UploadHistory)
+        .filter(UploadHistory.performed_by == user_id)  # ✅ CHỈ LỊCH SỬ CỦA USER
+        .order_by(UploadHistory.timestamp.desc())
+        .all()
+    )
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ADMIN HISTORY - XEM TẤT CẢ LỊCH SỬ UPLOAD
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+def list_admin_history(db: Session):
+    """
+    ✅ Admin xem toàn bộ lịch sử upload (không lọc)
+    """
+    return (
+        db.query(UploadHistory)
+        .order_by(UploadHistory.timestamp.desc())
+        .all()
+    )

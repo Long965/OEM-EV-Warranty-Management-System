@@ -8,11 +8,14 @@ class ClaimStatus(str, enum.Enum):
     approved = "Đã duyệt"
     rejected = "Từ chối"
 
+
 class WarrantyClaim(Base):
     __tablename__ = "warranty_claim"
+
     id = Column(Integer, primary_key=True, autoincrement=True)
+    upload_id = Column(Integer, nullable=False)   # 🔥 BẮT BUỘC
     vehicle_vin = Column(String(50), nullable=False)
-    customer_name = Column(String(100))  # NEW: Customer name field
+    customer_name = Column(String(100))
     part_serial = Column(String(50))
     issue_desc = Column(Text)
     diagnosis_report = Column(Text)
@@ -24,11 +27,12 @@ class WarrantyClaim(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, onupdate=func.now())
 
+
 class ClaimHistory(Base):
     __tablename__ = "warranty_claim_history"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    claim_id = Column(Integer, ForeignKey("warranty_claim.id", ondelete="SET NULL"), nullable=True)
+    claim_id = Column(Integer, ForeignKey("warranty_claim.id", ondelete="SET NULL"))
     vehicle_vin = Column(String(50))
     issue_desc = Column(Text)
     action = Column(String(50))

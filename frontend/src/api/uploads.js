@@ -1,6 +1,6 @@
 import api from './client'
 
-// List uploads
+// List uploads (user sees their own)
 export async function listUploads(createdBy) {
   const { data } = await api.get('/uploads/', {
     params: createdBy ? { created_by: createdBy } : {}
@@ -42,7 +42,7 @@ export async function submitUpload(uploadId) {
 export async function uploadFiles(files) {
   const formData = new FormData()
   files.forEach(file => formData.append('files', file))
-  
+ 
   const { data } = await api.post('/uploads/files', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })

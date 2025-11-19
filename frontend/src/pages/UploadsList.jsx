@@ -89,6 +89,8 @@ export default function UploadsList() {
         <h2>Phiếu bảo hành của tôi</h2>
       </div>
 
+
+
       <div className="toolbar">
         <div className="searchbox">
           <span className="loupe">🔎</span>
@@ -109,6 +111,9 @@ export default function UploadsList() {
           <option value="Đã duyệt">Đã duyệt</option>
           <option value="Từ chối">Từ chối</option>
         </select>
+        <div style={{ color: 'var(--text-muted)', fontSize: 15, fontWeight: 600 }}>
+          Tổng: <strong style={{ color: 'var(--primary)' }}>{filtered.length}</strong> phiếu
+        </div>
         <button
           className="btn btn-primary"
           onClick={() => {
@@ -132,18 +137,27 @@ export default function UploadsList() {
                 <th>Chi phí</th>
                 <th>Trạng thái</th>
                 <th>Ngày tạo</th>
-                <th style={{ width: 240 }}>Thao tác</th>
+                <th style={{ width: 100 }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="8" className="card--pad">Đang tải...</td>
+                  <td colSpan="8" className="card--pad">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 20 }}>⏳</span>
+                      Đang tải dữ liệu...
+                    </div>
+                  </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="card--pad text-muted">
-                    Chưa có phiếu nào. Nhấn "Tạo phiếu mới" để bắt đầu.
+                    <div style={{ padding: '40px 0' }}>
+                      <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+                      <div style={{ fontSize: 18, fontWeight: 600 }}>Chưa có phiếu nào</div>
+                      <div style={{ fontSize: 14, marginTop: 4 }}>Nhấn "Tạo phiếu mới" để bắt đầu</div>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -155,28 +169,35 @@ export default function UploadsList() {
                   return (
                     <tr key={upload.id}>
                       <td>
-                        <strong>#{upload.id}</strong>
+                        <strong style={{ color: 'var(--primary)' }}>#{upload.id}</strong>
                         {isSent && statusValue === 'Đã gửi' && (
-                          <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>
+                          <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 2, fontWeight: 600 }}>
                             ✓ Đã gửi admin
                           </div>
                         )}
                       </td>
-                      <td>{upload.vin}</td>
+                      <td><strong>{upload.vin}</strong></td>
                       <td>{upload.customer_name || '---'}</td>
-                      <td style={{ maxWidth: 250 }}>
-                        {upload.description?.substring(0, 60) || '---'}
-                        {upload.description?.length > 60 && '...'}
+                      <td style={{ maxWidth: 300 }}>
+                        <div style={{ 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis', 
+                          whiteSpace: 'nowrap' 
+                        }}>
+                          {upload.description || '---'}
+                        </div>
                       </td>
-                      <td>{formatCurrency(upload.warranty_cost)}</td>
+                      <td><strong>{formatCurrency(upload.warranty_cost)}</strong></td>
                       <td>
                         <span className={`role-pill role-${statusClassMap[statusValue] || 'sc_staff'}`}>
                           {statusValue}
                         </span>
                       </td>
-                      <td style={{ fontSize: 13 }}>{formatDate(upload.created_at)}</td>
+                      <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                        {formatDate(upload.created_at)}
+                      </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                           {/* Nút Xem chi tiết */}
                           <button
                             className="icon-btn"
@@ -185,7 +206,7 @@ export default function UploadsList() {
                               setViewingUpload(upload)
                               setOpenView(true)
                             }}
-                            style={{ background: '#3b82f6', color: 'white' }}
+                            style={{ background: 'var(--info-light)', color: 'var(--info)' }}
                           >
                             👁
                           </button>
@@ -265,55 +286,119 @@ export default function UploadsList() {
         onClose={() => setOpenView(false)}
       >
         {viewingUpload && (
-          <div style={{ display: 'grid', gap: 16 }}>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Mã VIN:</strong>
-              <div style={{ marginTop: 4 }}>{viewingUpload.vin}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Khách hàng:</strong>
-              <div style={{ marginTop: 4 }}>{viewingUpload.customer_name || '---'}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Mô tả vấn đề:</strong>
-              <div style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{viewingUpload.description || '---'}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Chẩn đoán kỹ thuật:</strong>
-              <div style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{viewingUpload.diagnosis || '---'}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Chi phí bảo hành:</strong>
-              <div style={{ marginTop: 4, fontSize: 18, fontWeight: 600, color: '#2563eb' }}>
-                {formatCurrency(viewingUpload.warranty_cost)}
+          <div style={{ display: 'grid', gap: 20 }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(2, 1fr)', 
+              gap: 20,
+              padding: 20,
+              background: 'var(--bg-secondary)',
+              borderRadius: 12
+            }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Mã VIN
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {viewingUpload.vin}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Khách hàng
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {viewingUpload.customer_name || '---'}
+                </div>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Chi phí bảo hành
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--success)' }}>
+                  {formatCurrency(viewingUpload.warranty_cost)}
+                </div>
               </div>
             </div>
+
             <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Tệp đính kèm:</strong>
-              <div style={{ marginTop: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                Mô tả vấn đề
+              </div>
+              <div style={{ 
+                padding: 16, 
+                background: 'var(--bg-secondary)', 
+                borderRadius: 12,
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.6
+              }}>
+                {viewingUpload.description || '---'}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                Chẩn đoán kỹ thuật
+              </div>
+              <div style={{ 
+                padding: 16, 
+                background: 'var(--bg-secondary)', 
+                borderRadius: 12,
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.6
+              }}>
+                {viewingUpload.diagnosis || '---'}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                Tệp đính kèm
+              </div>
+              <div style={{ padding: 16, background: 'var(--bg-secondary)', borderRadius: 12 }}>
                 {viewingUpload.file_url ? (
                   <a
                     href={viewingUpload.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: '#2563eb', textDecoration: 'underline' }}
+                    style={{ 
+                      color: 'var(--primary)', 
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8
+                    }}
                   >
-                    📎 Xem tệp
+                    📎 Xem tệp đính kèm
                   </a>
                 ) : '---'}
               </div>
             </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Trạng thái:</strong>
-              <div style={{ marginTop: 4 }}>
-                <span className={`role-pill role-${statusClassMap[typeof viewingUpload.status === 'object' ? viewingUpload.status.value : viewingUpload.status] || 'sc_staff'}`}>
-                  {typeof viewingUpload.status === 'object' ? viewingUpload.status.value : viewingUpload.status}
-                </span>
+
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 16,
+              padding: 16,
+              background: 'var(--bg-secondary)',
+              borderRadius: 12
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Trạng thái:
               </div>
+              <span className={`role-pill role-${statusClassMap[typeof viewingUpload.status === 'object' ? viewingUpload.status.value : viewingUpload.status] || 'sc_staff'}`}>
+                {typeof viewingUpload.status === 'object' ? viewingUpload.status.value : viewingUpload.status}
+              </span>
             </div>
+
             <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Ngày tạo:</strong>
-              <div style={{ marginTop: 4 }}>{formatDate(viewingUpload.created_at)}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                Ngày tạo
+              </div>
+              <div style={{ fontSize: 15, color: 'var(--text-primary)' }}>
+                {formatDate(viewingUpload.created_at)}
+              </div>
             </div>
           </div>
         )}

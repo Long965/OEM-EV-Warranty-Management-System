@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from models.schema import WarrantyClaimCreate
-from models.claim_model import ClaimStatus, WarrantyClaim
+from models.claim_model import ClaimStatus
 from services import claim_service
 from database import get_db
 
 router = APIRouter(prefix="/claims", tags=["Warranty Claims"])
 
 
-# ----------------------------------------
-# CREATE CLAIM (ONLY USER: SC Staff, SC Technician, EVM Staff)
-# ----------------------------------------
+# -------------------------------------------------------------
+# 1. CREATE CLAIM (USER ONLY)
+# -------------------------------------------------------------
 @router.post("/")
 def create_claim(
     data: WarrantyClaimCreate,
@@ -18,18 +18,18 @@ def create_claim(
     user_id: str = Header(None, alias="x-user-id"),
     role: str = Header(None, alias="x-user-role")
 ):
-
     if role == "Admin":
         raise HTTPException(403, "Admin cannot create claim")
 
     claim = claim_service.create_claim(db, data, user_id, role)
+
     return {"message": "Created", "claim_id": claim.id}
 
 
 
-# ----------------------------------------
-# APPROVE CLAIM (ONLY ADMIN)
-# ----------------------------------------
+# -------------------------------------------------------------
+# 2. APPROVE CLAIM (ADMIN ONLY)
+# -------------------------------------------------------------
 @router.put("/{claim_id}/approve")
 def approve_claim(
     claim_id: int,
@@ -38,9 +38,9 @@ def approve_claim(
     role: str = Header(None, alias="x-user-role")
 ):
     if role != "Admin":
-        raise HTTPException(403, "Only Admin can approve a claim")
+        raise HTTPException(403, "Only Admin can approve claims")
 
-    claim = claim_service.update_status(db, claim_id, ClaimStatus.approved, admin_id)
+    claim = claim_service.update_status(db, claim_id, ClaimStatus.approved, admin_id, role)
     if not claim:
         raise HTTPException(404, "Claim not found")
 
@@ -48,9 +48,9 @@ def approve_claim(
 
 
 
-# ----------------------------------------
-# REJECT CLAIM (ONLY ADMIN)
-# ----------------------------------------
+# -------------------------------------------------------------
+# 3. REJECT CLAIM (ADMIN ONLY)
+# -------------------------------------------------------------
 @router.put("/{claim_id}/reject")
 def reject_claim(
     claim_id: int,
@@ -59,9 +59,9 @@ def reject_claim(
     role: str = Header(None, alias="x-user-role")
 ):
     if role != "Admin":
-        raise HTTPException(403, "Only Admin can reject a claim")
+        raise HTTPException(403, "Only Admin can reject claims")
 
-    claim = claim_service.update_status(db, claim_id, ClaimStatus.rejected, admin_id)
+    claim = claim_service.update_status(db, claim_id, ClaimStatus.rejected, admin_id, role)
     if not claim:
         raise HTTPException(404, "Claim not found")
 
@@ -69,11 +69,9 @@ def reject_claim(
 
 
 
-# ----------------------------------------
-# LIST CLAIMS
-# USER → chỉ xem claim của chính mình
-# ADMIN → xem tất cả
-# ----------------------------------------
+# -------------------------------------------------------------
+# 4. LIST CLAIMS (USER → OWN, ADMIN → ALL)
+# -------------------------------------------------------------
 @router.get("/")
 def list_claims(
     db: Session = Depends(get_db),
@@ -85,27 +83,42 @@ def list_claims(
 
 
 
-# ----------------------------------------
-# CLAIM HISTORY
-# USER → chỉ xem history do chính họ thực hiện
-# ADMIN → xem tất cả
-# ----------------------------------------
-@router.get("/history")
-def get_history(
+# -------------------------------------------------------------
+# 5. USER HISTORY (ONLY SEE OWN HISTORY)
+# -------------------------------------------------------------
+@router.get("/history/user")
+def get_user_history(
     db: Session = Depends(get_db),
     user_id: str = Header(None, alias="x-user-id"),
     role: str = Header(None, alias="x-user-role")
 ):
-    history = claim_service.list_history(db, user_id, role)
+    if role == "Admin":
+        raise HTTPException(403, "Admin cannot view user history")
+
+    history = claim_service.list_user_history(db, user_id)
     return history
 
 
 
-# ----------------------------------------
-# GET SINGLE CLAIM
-# USER → chỉ xem claim của mình
-# ADMIN → xem tất cả
-# ----------------------------------------
+# -------------------------------------------------------------
+# 6. ADMIN HISTORY (ONLY SEE ADMIN HISTORY)
+# -------------------------------------------------------------
+@router.get("/history/admin")
+def get_admin_history(
+    db: Session = Depends(get_db),
+    role: str = Header(None, alias="x-user-role")
+):
+    if role != "Admin":
+        raise HTTPException(403, "Only Admin can view admin history")
+
+    history = claim_service.list_admin_history(db)
+    return history
+
+
+
+# -------------------------------------------------------------
+# 7. SINGLE CLAIM (USER → OWN, ADMIN → ALL)
+# -------------------------------------------------------------
 @router.get("/{claim_id}")
 def get_claim(
     claim_id: int,
@@ -121,10 +134,9 @@ def get_claim(
 
 
 
-# ----------------------------------------
-# UPDATE CLAIM
-# ONLY ADMIN
-# ----------------------------------------
+# -------------------------------------------------------------
+# 8. UPDATE CLAIM (ADMIN ONLY)
+# -------------------------------------------------------------
 @router.put("/{claim_id}")
 def update_claim(
     claim_id: int,
@@ -134,9 +146,9 @@ def update_claim(
     role: str = Header(None, alias="x-user-role")
 ):
     if role != "Admin":
-        raise HTTPException(403, "Only Admin can update claim")
+        raise HTTPException(403, "Only Admin can update claims")
 
-    claim = claim_service.update_claim(db, claim_id, data, admin_id)
+    claim = claim_service.update_claim(db, claim_id, data, admin_id, role)
     if not claim:
         raise HTTPException(404, "Claim not found")
 
@@ -144,20 +156,20 @@ def update_claim(
 
 
 
-# ----------------------------------------
-# DELETE CLAIM
-# ONLY ADMIN
-# ----------------------------------------
+# -------------------------------------------------------------
+# 9. DELETE CLAIM (ADMIN ONLY, WITH HISTORY LOG)
+# -------------------------------------------------------------
 @router.delete("/{claim_id}")
 def delete_claim(
     claim_id: int,
     db: Session = Depends(get_db),
+    user_id: str = Header(None, alias="x-user-id"),
     role: str = Header(None, alias="x-user-role")
 ):
     if role != "Admin":
-        raise HTTPException(403, "Only Admin can delete claim")
+        raise HTTPException(403, "Only Admin can delete claims")
 
-    success = claim_service.delete_claim(db, claim_id)
+    success = claim_service.delete_claim(db, claim_id, user_id, role)
     if not success:
         raise HTTPException(404, "Claim not found or cannot be deleted")
 

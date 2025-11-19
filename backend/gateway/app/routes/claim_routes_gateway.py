@@ -70,22 +70,33 @@ async def create_claim(request: Request):
 # --------------------------------------------
 # GET CLAIM HISTORY
 # --------------------------------------------
-@router.get("/history", summary="Get Claim History (proxy)")
-async def get_history(request: Request):
+@router.get("/history/user")
+async def user_history(request: Request):
     user = decode_token(request)
-
     async with httpx.AsyncClient() as client:
         resp = await client.get(
-            f"{CLAIM_SERVICE_URL}/claims/history",
+            f"{CLAIM_SERVICE_URL}/claims/history/user",
             headers={
                 "x-user-id": user["sub"],
                 "x-user-role": user["role"]
             }
         )
-
-    if resp.status_code >= 400:
-        raise HTTPException(resp.status_code, resp.text)
     return resp.json()
+
+
+@router.get("/history/admin")
+async def admin_history(request: Request):
+    user = decode_token(request)
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{CLAIM_SERVICE_URL}/claims/history/admin",
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
+        )
+    return resp.json()
+
 
 
 # --------------------------------------------

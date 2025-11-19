@@ -1,7 +1,7 @@
 import os
 import uuid
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Header
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header
 from sqlalchemy.orm import Session
 from database import get_db
 from models.schema import WarrantyUploadCreate
@@ -12,14 +12,13 @@ from fastapi import FastAPI
 
 router = APIRouter(prefix="/uploads", tags=["Warranty Uploads"])
 
-# Allowed user roles
 USER_ROLES = ["SC_Staff", "SC_Technician", "EVM_Staff"]
 
 
 # ---------------------------------------------------
-# CREATE UPLOAD  (ONLY USER)
+# CREATE UPLOAD
 # ---------------------------------------------------
-@router.post("/", summary="Nhân viên tạo phiếu bảo hành")
+@router.post("/")
 def create_upload(
     data: WarrantyUploadCreate,
     db: Session = Depends(get_db),
@@ -27,16 +26,15 @@ def create_upload(
     role: str = Header(None, alias="x-user-role")
 ):
     if role not in USER_ROLES:
-        raise HTTPException(403, "Only SC_Staff, SC_Technician, EVM_Staff can create upload")
-
-    upload = upload_service.create_upload(db, data, user_id)
+        raise HTTPException(403, "Only user roles can create upload")
+    upload = upload_service.create_upload(db, data, user_id, role)  # ✅ Truyền role
     return {"message": "Upload created", "upload_id": upload.id}
 
 
 # ---------------------------------------------------
-# GET UPLOAD DETAIL (USER sees their own, Admin sees all)
+# GET UPLOAD DETAIL
 # ---------------------------------------------------
-@router.get("/{upload_id}", summary="Lấy chi tiết phiếu bảo hành")
+@router.get("/{upload_id}")
 def get_upload(
     upload_id: int,
     db: Session = Depends(get_db),
@@ -54,9 +52,9 @@ def get_upload(
 
 
 # ---------------------------------------------------
-# UPDATE UPLOAD (ONLY USER)
+# UPDATE UPLOAD
 # ---------------------------------------------------
-@router.put("/{upload_id}", summary="Chỉnh sửa phiếu bảo hành")
+@router.put("/{upload_id}")
 def update_upload(
     upload_id: int,
     data: WarrantyUploadCreate,
@@ -66,25 +64,22 @@ def update_upload(
 ):
     if role not in USER_ROLES:
         raise HTTPException(403, "Only user roles can update upload")
-
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload:
         raise HTTPException(404, "Upload not found")
-
     if upload.created_by != user_id:
         raise HTTPException(403, "Permission denied")
-
-    updated = upload_service.update_upload(db, upload_id, data)
+    
+    updated = upload_service.update_upload(db, upload_id, data, user_id, role)  # ✅ Truyền role
     if not updated:
         raise HTTPException(400, "Update failed or not allowed")
-
     return {"message": "Upload updated successfully", "upload_id": updated.id}
 
 
 # ---------------------------------------------------
-# DELETE UPLOAD (ONLY USER)
+# DELETE UPLOAD
 # ---------------------------------------------------
-@router.delete("/{upload_id}", summary="Xóa phiếu bảo hành")
+@router.delete("/{upload_id}")
 def delete_upload(
     upload_id: int,
     db: Session = Depends(get_db),
@@ -93,42 +88,31 @@ def delete_upload(
 ):
     if role not in USER_ROLES:
         raise HTTPException(403, "Only user roles can delete upload")
-
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload:
         raise HTTPException(404, "Upload not found")
-
     if upload.created_by != user_id:
         raise HTTPException(403, "Permission denied")
-
-    success = upload_service.delete_upload(db, upload_id)
+    
+    success = upload_service.delete_upload(db, upload_id, user_id, role)  # ✅ Truyền role
     if not success:
         raise HTTPException(400, "Delete failed or not allowed")
-
     return {"message": "Upload deleted successfully"}
 
-
 # ---------------------------------------------------
-# SUBMIT UPLOAD (ONLY USER)
+# SUBMIT UPLOAD
 # ---------------------------------------------------
-@router.put("/{upload_id}/submit", summary="Nhân viên gửi phiếu lên admin duyệt")
+@router.put("/{upload_id}/submit")
 def submit_upload(
     upload_id: int,
     db: Session = Depends(get_db),
     user_id: str = Header(None, alias="x-user-id"),
-    role: str = Header(None, alias="x-user-role")
+    role: str = Header(None, alias="x-user-role"),
 ):
     if role not in USER_ROLES:
-        raise HTTPException(403, "Only user roles can submit")
+        raise HTTPException(403, "Only user roles can submit upload")
 
-    upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
-    if not upload:
-        raise HTTPException(404, "Upload not found")
-
-    if upload.created_by != user_id:
-        raise HTTPException(403, "Permission denied")
-
-    submit = upload_service.submit_upload(db, upload_id)
+    submit = upload_service.submit_upload(db, upload_id, user_id, role)
     if not submit:
         raise HTTPException(400, "Submit failed")
 
@@ -137,10 +121,8 @@ def submit_upload(
 
 # ---------------------------------------------------
 # LIST UPLOADS
-# USER → chỉ thấy của họ
-# ADMIN → thấy tất cả
 # ---------------------------------------------------
-@router.get("/", summary="Danh sách phiếu bảo hành")
+@router.get("/")
 def list_uploads(
     db: Session = Depends(get_db),
     user_id: str = Header(None, alias="x-user-id"),
@@ -151,18 +133,15 @@ def list_uploads(
 
 
 # ---------------------------------------------------
-# SYNC FROM CLAIM SERVICE (Admin only, internal)
+# SYNC STATUS (Admin-only internal)
 # ---------------------------------------------------
+# Allow internal call from Claim Service
 @router.put("/{upload_id}/sync-status")
 def sync_status(
     upload_id: int,
-    status: str = Query(...),
-    db: Session = Depends(get_db),
-    role: str = Header(None, alias="x-user-role")
+    status: str,
+    db: Session = Depends(get_db)
 ):
-    if role != "Admin":
-        raise HTTPException(403, "Only Claim Service (admin) can sync")
-
     upload = upload_service.sync_status_from_claim(db, upload_id, status)
     if not upload:
         raise HTTPException(404, "Upload not found")
@@ -170,13 +149,44 @@ def sync_status(
     return {"message": "Status synced", "status": upload.status}
 
 
+
 # ---------------------------------------------------
-# FILE UPLOAD (USER ONLY)
+# HISTORY (USER)
+# ---------------------------------------------------
+@router.get("/history/user")
+def user_history(
+    db: Session = Depends(get_db),
+    user_id: str = Header(None, alias="x-user-id"),
+    role: str = Header(None, alias="x-user-role")
+):
+
+    if role not in USER_ROLES:
+        raise HTTPException(403, "Only user roles can view their history")
+    
+    # ✅ Truyền user_id để lọc theo performed_by
+    return upload_service.list_user_history(db, user_id)
+
+# ---------------------------------------------------
+# HISTORY (ADMIN)
+# ---------------------------------------------------
+@router.get("/history/admin")
+def admin_history(
+    db: Session = Depends(get_db),
+    role: str = Header(None, alias="x-user-role")
+):
+    if role != "Admin":
+        raise HTTPException(403, "Only Admin can view upload history")
+
+    return upload_service.list_admin_history(db)
+
+
+# ---------------------------------------------------
+# FILE UPLOAD
 # ---------------------------------------------------
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@router.post("/files", summary="Upload file hoặc hình ảnh bảo hành")
+@router.post("/files")
 async def upload_files(
     files: list[UploadFile] = File(...),
     role: str = Header(None, alias="x-user-role")

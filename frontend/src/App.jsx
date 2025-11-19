@@ -11,6 +11,7 @@ import UserForm from './pages/admin/UserForm'
 import ClaimsList from './pages/ClaimsList'
 import UploadsList from './pages/UploadsList'
 import ClaimHistory from './pages/ClaimHistory'
+import UserHistory from './pages/UserHistory'
 
 export default function App() {
   const location = useLocation()
@@ -68,15 +69,19 @@ export default function App() {
             }
           />
 
-          {/* Claims - Admin sees all, Staff sees their status */}
+          {/* Claims - Admin only */}
           <Route
             path="/claims"
             element={
               <ProtectedRoute>
-                <ClaimsList />
+                <RoleGuard roles={['Admin']}>
+                  <ClaimsList />
+                </RoleGuard>
               </ProtectedRoute>
             }
           />
+
+          {/* History - Admin only */}
           <Route
             path="/history"
             element={
@@ -88,13 +93,25 @@ export default function App() {
             }
           />
 
-          {/* Uploads - Staff only */}
+          {/* Uploads - Staff only (read-only) */}
           <Route
             path="/uploads"
             element={
               <ProtectedRoute>
                 <RoleGuard roles={['SC_Staff', 'SC_Technician', 'EVM_Staff']}>
                   <UploadsList />
+                </RoleGuard>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* User History - Staff only */}
+          <Route
+            path="/user-history"
+            element={
+              <ProtectedRoute>
+                <RoleGuard roles={['SC_Staff', 'SC_Technician', 'EVM_Staff']}>
+                  <UserHistory />
                 </RoleGuard>
               </ProtectedRoute>
             }

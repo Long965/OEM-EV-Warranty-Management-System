@@ -201,3 +201,18 @@ async def upload_files(request: Request):
     if resp.status_code >= 400:
         raise HTTPException(resp.status_code, resp.text)
     return resp.json()
+
+@router.get("/history/user", summary="Get User Upload History (proxy)")
+async def user_history(request: Request):
+    user = decode_token(request)
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{UPLOAD_SERVICE_URL}/uploads/history/user",
+            headers={
+                "x-user-id": user["sub"],
+                "x-user-role": user["role"]
+            }
+        )
+    if resp.status_code >= 400:
+        raise HTTPException(resp.status_code, resp.text)
+    return resp.json()

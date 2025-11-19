@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { listClaims, approveClaim, rejectClaim } from '../api/claims'
 import api from '../api/client'
 import Modal from '../components/Modal'
-import ClaimEditForm from '../components/ClaimEditForm'
 
 const statusClassMap = {
   'Chờ duyệt': 'pending',
@@ -23,8 +22,6 @@ export default function ClaimsList() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [editingId, setEditingId] = useState(null)
-  const [openEdit, setOpenEdit] = useState(false)
   const [viewingClaim, setViewingClaim] = useState(null)
   const [openView, setOpenView] = useState(false)
 
@@ -81,30 +78,21 @@ export default function ClaimsList() {
     }
   })
 
-  const del = useMutation({
-    mutationFn: async (claimId) => {
-      const { data } = await api.delete(`/claims/${claimId}`)
-      return data
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['claims'] })
-      alert('🗑️ Đã xóa phiếu!')
-    },
-    onError: (e) => {
-      alert('❌ Lỗi: ' + (e?.response?.data?.detail || 'Không thể xóa phiếu'))
-    }
-  })
-
   const formatCurrency = (amount) => {
     if (!amount) return '---'
     return parseFloat(amount).toLocaleString('vi-VN') + '₫'
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '---'
+    return new Date(dateString).toLocaleString('vi-VN')
   }
 
   return (
     <div className="container">
       <div className="page-title">
         <div className="ico">📋</div>
-        <h2>{isAdmin ? 'Quản lý phiếu bảo hành' : 'Phiếu bảo hành'}</h2>
+        <h2>Quản lý phiếu bảo hành</h2>
       </div>
 
       <div className="toolbar">
@@ -127,14 +115,9 @@ export default function ClaimsList() {
           <option value="Đã duyệt">Đã duyệt</option>
           <option value="Từ chối">Từ chối</option>
         </select>
-        {isAdmin && (
-          <button
-            className="btn btn-primary"
-            onClick={() => { setEditingId(null); setOpenEdit(true) }}
-          >
-            ➕ Tạo phiếu mới
-          </button>
-        )}
+        <div style={{ color: 'var(--text-muted)', fontSize: 15, fontWeight: 600 }}>
+          Tổng: <strong style={{ color: 'var(--primary)' }}>{filtered.length}</strong> phiếu
+        </div>
       </div>
 
       <div className="card">
@@ -148,38 +131,56 @@ export default function ClaimsList() {
                 <th>Mô tả</th>
                 <th>Chi phí</th>
                 <th>Trạng thái</th>
-                <th style={{ width: 240 }}>Thao tác</th>
+                <th>Ngày tạo</th>
+                <th style={{ width: 280 }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="7" className="card--pad">Đang tải...</td>
+                  <td colSpan="8" className="card--pad">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 20 }}>⏳</span>
+                      Đang tải dữ liệu...
+                    </div>
+                  </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="card--pad text-muted">
-                    Không có phiếu nào
+                  <td colSpan="8" className="card--pad text-muted">
+                    <div style={{ padding: '40px 0' }}>
+                      <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+                      <div style={{ fontSize: 18, fontWeight: 600 }}>Không có phiếu nào</div>
+                      <div style={{ fontSize: 14, marginTop: 4 }}>Thử điều chỉnh bộ lọc hoặc tìm kiếm</div>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filtered.map(claim => {
                   const statusValue = typeof claim.status === 'object' ? claim.status.value : claim.status
                   const isPending = statusValue === 'Chờ duyệt'
-
+                  
                   return (
                     <tr key={claim.id}>
-                      <td><strong>#{claim.id}</strong></td>
-                      <td>{claim.vehicle_vin}</td>
+                      <td><strong style={{ color: 'var(--primary)' }}>#{claim.id}</strong></td>
+                      <td><strong>{claim.vehicle_vin}</strong></td>
                       <td>{claim.customer_name || '---'}</td>
                       <td style={{ maxWidth: 300 }}>
-                        {claim.issue_desc?.substring(0, 80) || '---'}
-                        {claim.issue_desc?.length > 80 && '...'}
+                        <div style={{ 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis', 
+                          whiteSpace: 'nowrap' 
+                        }}>
+                          {claim.issue_desc || '---'}
+                        </div>
                       </td>
-                      <td>{formatCurrency(claim.warranty_cost)}</td>
+                      <td><strong>{formatCurrency(claim.warranty_cost)}</strong></td>
                       <td>{statusBadge(claim.status)}</td>
+                      <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                        {formatDate(claim.created_at)}
+                      </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                           {/* Nút Xem chi tiết */}
                           <button
                             className="icon-btn"
@@ -188,7 +189,7 @@ export default function ClaimsList() {
                               setViewingClaim(claim)
                               setOpenView(true)
                             }}
-                            style={{ background: '#3b82f6', color: 'white' }}
+                            style={{ background: 'var(--info-light)', color: 'var(--info)' }}
                           >
                             👁
                           </button>
@@ -197,20 +198,10 @@ export default function ClaimsList() {
                           {isAdmin && isPending && (
                             <>
                               <button
-                                className="icon-btn edit"
-                                title="Sửa"
+                                className="btn btn-success"
+                                style={{ fontSize: 13, padding: '8px 16px' }}
                                 onClick={() => {
-                                  setEditingId(claim.id)
-                                  setOpenEdit(true)
-                                }}
-                              >
-                                ✎
-                              </button>
-                              <button
-                                className="btn btn-primary"
-                                style={{ fontSize: 12, padding: '6px 12px' }}
-                                onClick={() => {
-                                  if (confirm(`Duyệt phiếu #${claim.id}?`))
+                                  if (confirm(`Duyệt phiếu #${claim.id}?\nHành động này không thể hoàn tác.`))
                                     approve.mutate(claim.id)
                                 }}
                                 disabled={approve.isPending}
@@ -219,7 +210,7 @@ export default function ClaimsList() {
                               </button>
                               <button
                                 className="btn btn-danger"
-                                style={{ fontSize: 12, padding: '6px 12px' }}
+                                style={{ fontSize: 13, padding: '8px 16px' }}
                                 onClick={() => {
                                   if (confirm(`Từ chối phiếu #${claim.id}?`))
                                     reject.mutate(claim.id)
@@ -229,21 +220,6 @@ export default function ClaimsList() {
                                 ✗ Từ chối
                               </button>
                             </>
-                          )}
-
-                          {/* Nút Xóa - chỉ Admin */}
-                          {isAdmin && (
-                            <button
-                              className="icon-btn del"
-                              title="Xóa phiếu"
-                              onClick={() => {
-                                if (confirm(`Xóa phiếu #${claim.id}?\nHành động này không thể hoàn tác.`))
-                                  del.mutate(claim.id)
-                              }}
-                              disabled={del.isPending}
-                            >
-                              🗑
-                            </button>
                           )}
                         </div>
                       </td>
@@ -256,23 +232,6 @@ export default function ClaimsList() {
         </div>
       </div>
 
-      {/* Modal Sửa/Tạo phiếu - chỉ Admin */}
-      {isAdmin && (
-        <Modal
-          open={openEdit}
-          title={editingId ? 'Chỉnh sửa phiếu bảo hành' : 'Tạo phiếu bảo hành mới'}
-          onClose={() => setOpenEdit(false)}
-        >
-          <ClaimEditForm
-            claimId={editingId}
-            onDone={() => {
-              setOpenEdit(false)
-              qc.invalidateQueries({ queryKey: ['claims'] })
-            }}
-          />
-        </Modal>
-      )}
-
       {/* Modal Xem chi tiết */}
       <Modal
         open={openView}
@@ -280,36 +239,91 @@ export default function ClaimsList() {
         onClose={() => setOpenView(false)}
       >
         {viewingClaim && (
-          <div style={{ display: 'grid', gap: 16 }}>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Mã VIN:</strong>
-              <div style={{ marginTop: 4 }}>{viewingClaim.vehicle_vin}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Khách hàng:</strong>
-              <div style={{ marginTop: 4 }}>{viewingClaim.customer_name || '---'}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Mã serial linh kiện:</strong>
-              <div style={{ marginTop: 4 }}>{viewingClaim.part_serial || '---'}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Mô tả lỗi:</strong>
-              <div style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{viewingClaim.issue_desc}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Báo cáo chẩn đoán:</strong>
-              <div style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{viewingClaim.diagnosis_report || '---'}</div>
-            </div>
-            <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Chi phí bảo hành:</strong>
-              <div style={{ marginTop: 4, fontSize: 18, fontWeight: 600, color: '#2563eb' }}>
-                {formatCurrency(viewingClaim.warranty_cost)}
+          <div style={{ display: 'grid', gap: 20 }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(2, 1fr)', 
+              gap: 20,
+              padding: 20,
+              background: 'var(--bg-secondary)',
+              borderRadius: 12
+            }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Mã VIN
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {viewingClaim.vehicle_vin}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Khách hàng
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {viewingClaim.customer_name || '---'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Mã serial linh kiện
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {viewingClaim.part_serial || '---'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Chi phí bảo hành
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--success)' }}>
+                  {formatCurrency(viewingClaim.warranty_cost)}
+                </div>
               </div>
             </div>
+
             <div>
-              <strong style={{ color: '#64748b', fontSize: 13 }}>Trạng thái:</strong>
-              <div style={{ marginTop: 4 }}>{statusBadge(viewingClaim.status)}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                Mô tả lỗi
+              </div>
+              <div style={{ 
+                padding: 16, 
+                background: 'var(--bg-secondary)', 
+                borderRadius: 12,
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.6
+              }}>
+                {viewingClaim.issue_desc}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                Báo cáo chẩn đoán
+              </div>
+              <div style={{ 
+                padding: 16, 
+                background: 'var(--bg-secondary)', 
+                borderRadius: 12,
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.6
+              }}>
+                {viewingClaim.diagnosis_report || '---'}
+              </div>
+            </div>
+
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 16,
+              padding: 16,
+              background: 'var(--bg-secondary)',
+              borderRadius: 12
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Trạng thái:
+              </div>
+              {statusBadge(viewingClaim.status)}
             </div>
           </div>
         )}
