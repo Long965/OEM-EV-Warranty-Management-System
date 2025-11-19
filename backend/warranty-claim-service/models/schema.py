@@ -13,7 +13,7 @@ class Attachment(BaseModel):
     type: str
 
 class WarrantyClaimCreate(BaseModel):
-    upload_id: int                        # 🔥 THÊM
+    upload_id: int                    
     vehicle_vin: str
     customer_name: Optional[str] = None
     part_serial: Optional[str] = None
@@ -24,7 +24,7 @@ class WarrantyClaimCreate(BaseModel):
 
 class WarrantyClaimResponse(BaseModel):
     id: int
-    upload_id: int                        # 🔥 THÊM
+    upload_id: int  
     vehicle_vin: str
     customer_name: Optional[str]
     status: ClaimStatus

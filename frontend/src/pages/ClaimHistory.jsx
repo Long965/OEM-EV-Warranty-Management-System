@@ -49,7 +49,6 @@ export default function ClaimHistory() {
     )
   }
 
-  // ✅ NEW: Get role badge based on performed_role from database
   const getRoleBadge = (role) => {
     const roleMap = {
       'Admin': { class: 'admin', label: 'Admin' },
@@ -72,7 +71,7 @@ export default function ClaimHistory() {
         <h2>Lịch sử phiếu bảo hành (Admin)</h2>
       </div>
 
-      {/* Info Banner */}
+ 
       <div style={{
         background: 'linear-gradient(135deg, var(--warning-light) 0%, var(--danger-light) 100%)',
         padding: '16px 20px',

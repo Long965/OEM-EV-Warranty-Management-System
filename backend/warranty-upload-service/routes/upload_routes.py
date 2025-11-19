@@ -14,10 +14,6 @@ router = APIRouter(prefix="/uploads", tags=["Warranty Uploads"])
 
 USER_ROLES = ["SC_Staff", "SC_Technician", "EVM_Staff"]
 
-
-# ---------------------------------------------------
-# CREATE UPLOAD
-# ---------------------------------------------------
 @router.post("/")
 def create_upload(
     data: WarrantyUploadCreate,
@@ -27,13 +23,9 @@ def create_upload(
 ):
     if role not in USER_ROLES:
         raise HTTPException(403, "Only user roles can create upload")
-    upload = upload_service.create_upload(db, data, user_id, role)  # ✅ Truyền role
+    upload = upload_service.create_upload(db, data, user_id, role)
     return {"message": "Upload created", "upload_id": upload.id}
 
-
-# ---------------------------------------------------
-# GET UPLOAD DETAIL
-# ---------------------------------------------------
 @router.get("/{upload_id}")
 def get_upload(
     upload_id: int,
@@ -50,10 +42,6 @@ def get_upload(
 
     return upload
 
-
-# ---------------------------------------------------
-# UPDATE UPLOAD
-# ---------------------------------------------------
 @router.put("/{upload_id}")
 def update_upload(
     upload_id: int,
@@ -70,15 +58,11 @@ def update_upload(
     if upload.created_by != user_id:
         raise HTTPException(403, "Permission denied")
     
-    updated = upload_service.update_upload(db, upload_id, data, user_id, role)  # ✅ Truyền role
+    updated = upload_service.update_upload(db, upload_id, data, user_id, role)
     if not updated:
         raise HTTPException(400, "Update failed or not allowed")
     return {"message": "Upload updated successfully", "upload_id": updated.id}
 
-
-# ---------------------------------------------------
-# DELETE UPLOAD
-# ---------------------------------------------------
 @router.delete("/{upload_id}")
 def delete_upload(
     upload_id: int,
@@ -94,14 +78,11 @@ def delete_upload(
     if upload.created_by != user_id:
         raise HTTPException(403, "Permission denied")
     
-    success = upload_service.delete_upload(db, upload_id, user_id, role)  # ✅ Truyền role
+    success = upload_service.delete_upload(db, upload_id, user_id, role)
     if not success:
         raise HTTPException(400, "Delete failed or not allowed")
     return {"message": "Upload deleted successfully"}
 
-# ---------------------------------------------------
-# SUBMIT UPLOAD
-# ---------------------------------------------------
 @router.put("/{upload_id}/submit")
 def submit_upload(
     upload_id: int,
@@ -118,10 +99,6 @@ def submit_upload(
 
     return {"message": "Phiếu đã gửi", "status": submit.status}
 
-
-# ---------------------------------------------------
-# LIST UPLOADS
-# ---------------------------------------------------
 @router.get("/")
 def list_uploads(
     db: Session = Depends(get_db),
@@ -131,11 +108,6 @@ def list_uploads(
     uploads = upload_service.list_uploads_by_role(db, user_id, role)
     return uploads
 
-
-# ---------------------------------------------------
-# SYNC STATUS (Admin-only internal)
-# ---------------------------------------------------
-# Allow internal call from Claim Service
 @router.put("/{upload_id}/sync-status")
 def sync_status(
     upload_id: int,
@@ -148,11 +120,6 @@ def sync_status(
 
     return {"message": "Status synced", "status": upload.status}
 
-
-
-# ---------------------------------------------------
-# HISTORY (USER)
-# ---------------------------------------------------
 @router.get("/history/user")
 def user_history(
     db: Session = Depends(get_db),
@@ -162,13 +129,8 @@ def user_history(
 
     if role not in USER_ROLES:
         raise HTTPException(403, "Only user roles can view their history")
-    
-    # ✅ Truyền user_id để lọc theo performed_by
     return upload_service.list_user_history(db, user_id)
 
-# ---------------------------------------------------
-# HISTORY (ADMIN)
-# ---------------------------------------------------
 @router.get("/history/admin")
 def admin_history(
     db: Session = Depends(get_db),
@@ -179,10 +141,6 @@ def admin_history(
 
     return upload_service.list_admin_history(db)
 
-
-# ---------------------------------------------------
-# FILE UPLOAD
-# ---------------------------------------------------
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 

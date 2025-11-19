@@ -7,10 +7,6 @@ from database import get_db
 
 router = APIRouter(prefix="/claims", tags=["Warranty Claims"])
 
-
-# -------------------------------------------------------------
-# 1. CREATE CLAIM (USER ONLY)
-# -------------------------------------------------------------
 @router.post("/")
 def create_claim(
     data: WarrantyClaimCreate,
@@ -25,11 +21,6 @@ def create_claim(
 
     return {"message": "Created", "claim_id": claim.id}
 
-
-
-# -------------------------------------------------------------
-# 2. APPROVE CLAIM (ADMIN ONLY)
-# -------------------------------------------------------------
 @router.put("/{claim_id}/approve")
 def approve_claim(
     claim_id: int,
@@ -46,11 +37,6 @@ def approve_claim(
 
     return {"message": "Claim approved"}
 
-
-
-# -------------------------------------------------------------
-# 3. REJECT CLAIM (ADMIN ONLY)
-# -------------------------------------------------------------
 @router.put("/{claim_id}/reject")
 def reject_claim(
     claim_id: int,
@@ -67,11 +53,6 @@ def reject_claim(
 
     return {"message": "Claim rejected"}
 
-
-
-# -------------------------------------------------------------
-# 4. LIST CLAIMS (USER → OWN, ADMIN → ALL)
-# -------------------------------------------------------------
 @router.get("/")
 def list_claims(
     db: Session = Depends(get_db),
@@ -82,10 +63,6 @@ def list_claims(
     return claims
 
 
-
-# -------------------------------------------------------------
-# 5. USER HISTORY (ONLY SEE OWN HISTORY)
-# -------------------------------------------------------------
 @router.get("/history/user")
 def get_user_history(
     db: Session = Depends(get_db),
@@ -98,11 +75,6 @@ def get_user_history(
     history = claim_service.list_user_history(db, user_id)
     return history
 
-
-
-# -------------------------------------------------------------
-# 6. ADMIN HISTORY (ONLY SEE ADMIN HISTORY)
-# -------------------------------------------------------------
 @router.get("/history/admin")
 def get_admin_history(
     db: Session = Depends(get_db),
@@ -114,11 +86,6 @@ def get_admin_history(
     history = claim_service.list_admin_history(db)
     return history
 
-
-
-# -------------------------------------------------------------
-# 7. SINGLE CLAIM (USER → OWN, ADMIN → ALL)
-# -------------------------------------------------------------
 @router.get("/{claim_id}")
 def get_claim(
     claim_id: int,
@@ -132,11 +99,6 @@ def get_claim(
 
     return claim
 
-
-
-# -------------------------------------------------------------
-# 8. UPDATE CLAIM (ADMIN ONLY)
-# -------------------------------------------------------------
 @router.put("/{claim_id}")
 def update_claim(
     claim_id: int,
@@ -154,11 +116,6 @@ def update_claim(
 
     return {"message": "Claim updated successfully"}
 
-
-
-# -------------------------------------------------------------
-# 9. DELETE CLAIM (ADMIN ONLY, WITH HISTORY LOG)
-# -------------------------------------------------------------
 @router.delete("/{claim_id}")
 def delete_claim(
     claim_id: int,

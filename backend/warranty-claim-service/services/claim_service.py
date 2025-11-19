@@ -5,10 +5,6 @@ import requests, os, traceback
 
 UPLOAD_SERVICE_URL = os.getenv("UPLOAD_SERVICE_URL", "http://warranty-upload-service:8083/uploads")
 
-
-# -------------------------------------------------------------
-# LOG HISTORY
-# -------------------------------------------------------------
 def log_history(db: Session, claim: WarrantyClaim, action: str, user_id: str, role: str):
     try:
         history = ClaimHistory(
@@ -25,13 +21,9 @@ def log_history(db: Session, claim: WarrantyClaim, action: str, user_id: str, ro
         db.rollback()
         traceback.print_exc()
 
-
-# -------------------------------------------------------------
-# CREATE CLAIM (USER)
-# -------------------------------------------------------------
 def create_claim(db: Session, data: WarrantyClaimCreate, user_id: str, role: str):
     claim = WarrantyClaim(
-        upload_id=data.upload_id,                # 🔥 QUAN TRỌNG
+        upload_id=data.upload_id,   
         vehicle_vin=data.vehicle_vin,
         customer_name=data.customer_name,
         part_serial=data.part_serial,
@@ -55,10 +47,6 @@ def create_claim(db: Session, data: WarrantyClaimCreate, user_id: str, role: str
         traceback.print_exc()
         raise
 
-
-# -------------------------------------------------------------
-# UPDATE STATUS (APPROVE / REJECT) — ADMIN
-# -------------------------------------------------------------
 def update_status(db: Session, claim_id: int, status: ClaimStatus, admin_id: str, role: str):
     claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
     if not claim:
@@ -71,11 +59,9 @@ def update_status(db: Session, claim_id: int, status: ClaimStatus, admin_id: str
         db.commit()
         db.refresh(claim)
 
-        # Log
         action = "Duyệt phiếu" if status == ClaimStatus.approved else "Từ chối phiếu"
         log_history(db, claim, action, admin_id, role)
 
-        # 🔥 SYNC TO UPLOAD SERVICE – ĐÚNG upload_id
         try:
             requests.put(
                 f"{UPLOAD_SERVICE_URL}/{claim.upload_id}/sync-status",
@@ -92,10 +78,6 @@ def update_status(db: Session, claim_id: int, status: ClaimStatus, admin_id: str
         traceback.print_exc()
         raise
 
-
-# -------------------------------------------------------------
-# LIST CLAIMS
-# -------------------------------------------------------------
 def list_claims(db: Session, user_id: str, role: str):
     query = db.query(WarrantyClaim)
 
@@ -104,11 +86,6 @@ def list_claims(db: Session, user_id: str, role: str):
 
     return query.order_by(WarrantyClaim.created_at.desc()).all()
 
-
-
-# -------------------------------------------------------------
-# USER HISTORY
-# -------------------------------------------------------------
 def list_user_history(db: Session, user_id: str):
     return (
         db.query(ClaimHistory)
@@ -117,16 +94,7 @@ def list_user_history(db: Session, user_id: str):
         .all()
     )
 
-
-
-# -------------------------------------------------------------
-# ADMIN HISTORY
-# -------------------------------------------------------------
 def list_admin_history(db: Session):
-    """
-    ✅ Admin xem TOÀN BỘ lịch sử trong warranty_claim_history
-    Không lọc theo performed_role nữa
-    """
     return (
         db.query(ClaimHistory)
         # ✅ REMOVED filter - không lọc gì cả
@@ -134,10 +102,6 @@ def list_admin_history(db: Session):
         .all()
     )
 
-
-# -------------------------------------------------------------
-# GET CLAIM WITH PERMISSION
-# -------------------------------------------------------------
 def get_claim_by_permission(db: Session, claim_id: int, user_id: str, role: str):
     claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
     if not claim:
@@ -148,11 +112,6 @@ def get_claim_by_permission(db: Session, claim_id: int, user_id: str, role: str)
 
     return claim
 
-
-
-# -------------------------------------------------------------
-# UPDATE CLAIM (ADMIN ONLY)
-# -------------------------------------------------------------
 def update_claim(db: Session, claim_id: int, data: WarrantyClaimCreate, admin_id: str, role: str):
     claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
     if not claim:
@@ -179,11 +138,6 @@ def update_claim(db: Session, claim_id: int, data: WarrantyClaimCreate, admin_id
         traceback.print_exc()
         raise
 
-
-
-# -------------------------------------------------------------
-# DELETE CLAIM (ADMIN ONLY) + LOG HISTORY
-# -------------------------------------------------------------
 def delete_claim(db: Session, claim_id: int, admin_id: str, role: str):
     claim = db.query(WarrantyClaim).filter(WarrantyClaim.id == claim_id).first()
     if not claim:

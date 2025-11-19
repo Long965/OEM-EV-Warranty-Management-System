@@ -1,7 +1,3 @@
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# warranty-upload-service/services/upload_service.py
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 from sqlalchemy.orm import Session
 from models.upload_model import WarrantyUpload, UploadStatus, UploadHistory
 from models.schema import WarrantyUploadCreate
@@ -9,9 +5,6 @@ import requests, os, traceback
 
 CLAIM_SERVICE_URL = os.getenv("CLAIM_SERVICE_URL", "http://warranty-claim-service:8082/claims")
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# LOG HISTORY
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def log_history(db: Session, upload: WarrantyUpload, action: str, user_id: str, role: str):
     try:
         history = UploadHistory(
@@ -27,9 +20,6 @@ def log_history(db: Session, upload: WarrantyUpload, action: str, user_id: str, 
         db.rollback()
         traceback.print_exc()
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# CREATE UPLOAD
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def create_upload(db: Session, data: WarrantyUploadCreate, user_id: str, role: str):
     upload = WarrantyUpload(
         vin=data.vin,
@@ -47,9 +37,6 @@ def create_upload(db: Session, data: WarrantyUploadCreate, user_id: str, role: s
     log_history(db, upload, "Tạo mới phiếu upload", user_id, role)
     return upload
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# UPDATE UPLOAD
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def update_upload(db: Session, upload_id: int, data: WarrantyUploadCreate, user_id: str, role: str):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload or upload.status != UploadStatus.submitted:
@@ -71,9 +58,6 @@ def update_upload(db: Session, upload_id: int, data: WarrantyUploadCreate, user_
         traceback.print_exc()
         raise
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# DELETE UPLOAD
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def delete_upload(db: Session, upload_id: int, user_id: str, role: str):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload or upload.status != UploadStatus.submitted:
@@ -89,9 +73,6 @@ def delete_upload(db: Session, upload_id: int, user_id: str, role: str):
         traceback.print_exc()
         return False
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# SUBMIT UPLOAD (SEND TO CLAIM)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def submit_upload(db: Session, upload_id: int, user_id: str, role: str):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload:
@@ -130,9 +111,6 @@ def submit_upload(db: Session, upload_id: int, user_id: str, role: str):
     except Exception:
         return None
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# SYNC STATUS FROM CLAIM
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def sync_status_from_claim(db: Session, upload_id: int, status: str):
     upload = db.query(WarrantyUpload).filter(WarrantyUpload.id == upload_id).first()
     if not upload:
@@ -151,37 +129,22 @@ def sync_status_from_claim(db: Session, upload_id: int, status: str):
         traceback.print_exc()
         return None
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# LIST UPLOADS
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def list_uploads_by_role(db: Session, user_id: str, role: str):
     q = db.query(WarrantyUpload)
     if role != "Admin":
         q = q.filter(WarrantyUpload.created_by == user_id)
     return q.order_by(WarrantyUpload.created_at.desc()).all()
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# USER HISTORY - CHỈ XEM LỊCH SỬ CỦA CHÍNH MÌNH
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def list_user_history(db: Session, user_id: str):
-    """
-    ✅ User chỉ xem được lịch sử upload của chính mình
-    Lọc theo performed_by = user_id
-    """
+
     return (
         db.query(UploadHistory)
-        .filter(UploadHistory.performed_by == user_id)  # ✅ CHỈ LỊCH SỬ CỦA USER
+        .filter(UploadHistory.performed_by == user_id) 
         .order_by(UploadHistory.timestamp.desc())
         .all()
     )
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ADMIN HISTORY - XEM TẤT CẢ LỊCH SỬ UPLOAD
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def list_admin_history(db: Session):
-    """
-    ✅ Admin xem toàn bộ lịch sử upload (không lọc)
-    """
+
     return (
         db.query(UploadHistory)
         .order_by(UploadHistory.timestamp.desc())

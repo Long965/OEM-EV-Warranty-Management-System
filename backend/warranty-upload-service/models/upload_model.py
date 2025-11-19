@@ -28,10 +28,6 @@ class WarrantyUpload(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, onupdate=func.now())
 
-
-# -------------------------------------------------------------
-# UPLOAD HISTORY TABLE
-# -------------------------------------------------------------
 class UploadHistory(Base):
     __tablename__ = "warranty_upload_history"
 
