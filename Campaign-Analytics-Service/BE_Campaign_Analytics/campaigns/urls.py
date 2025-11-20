@@ -1,21 +1,26 @@
-# campaigns/urls.py
+# campaignsApi/urls.py
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     RecallCampaignViewSet, 
-    CampaignVehicleViewSet, 
-    FaultDataViewSet, 
-    ForecastModelViewSet
+    CampaignVehicleViewSet,
+    FaultDataViewSet,
+    ForecastModelViewSet,
+    analytics_dashboard
 )
 
-# Router tự động tạo các đường dẫn CRUD cho ViewSet
+# 1. KHỐI ROUTER
 router = DefaultRouter()
 router.register(r'campaigns', RecallCampaignViewSet)
 router.register(r'campaign-vehicles', CampaignVehicleViewSet)
 router.register(r'fault-data', FaultDataViewSet)
 router.register(r'forecast-models', ForecastModelViewSet)
 
+# 2. KHỐI URLPATTERNS
 urlpatterns = [
-    path('', include(router.urls)),
+    # ĐĂNG KÝ ANALYTICS
+    path('analytics/dashboard/', analytics_dashboard, name='analytics-dashboard'),
+    # Bao gồm các URL do Router tạo (sẽ tạo ra /campaigns/, /fault-data/, v.v.)
+    path('', include(router.urls)),  
 ]

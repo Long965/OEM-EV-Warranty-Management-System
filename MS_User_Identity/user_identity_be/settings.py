@@ -1,7 +1,7 @@
-from pathlib import Path
-
-import pymysql 
+import pymysql
 pymysql.install_as_MySQLdb()
+from datetime import timedelta
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-20q@b1okvi*-#1m49gl6j+4ta@7j&8=exsa@si99t1(0uce5&u'
+SECRET_KEY = 'django-insecure-b)6r8q1k@*dep)3@37(q#e&3t5_9v$lz7su&)x%98vrp%$^hf='
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -28,11 +28,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'campaigns', # Ứng dụng chiến dịch
-    'rest_framework', # Cần thiết cho việc xây dựng API
+    'corsheaders',
+    'accounts', 
+    'rest_framework',
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -42,7 +45,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'campaign_analytics_be.urls'
+ROOT_URLCONF = 'user_identity_be.urls'
 
 TEMPLATES = [
     {
@@ -59,7 +62,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'campaign_analytics_be.wsgi.application'
+WSGI_APPLICATION = 'user_identity_be.wsgi.application'
 
 
 # Database
@@ -68,10 +71,10 @@ WSGI_APPLICATION = 'campaign_analytics_be.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ms5_campaign_db',       
-        'USER': 'django_user',           
-        'PASSWORD': 'django_password_123', 
-        'HOST': 'mysql_db',            
+        'NAME': 'ms1_identity_db', 
+        'USER': 'django_user',      
+        'PASSWORD': 'django_password_123',
+        'HOST': 'mysql_db',
         'PORT': '3306',
     }
 }
@@ -127,9 +130,16 @@ REST_FRAMEWORK = {
     )
 }
 
-# Giải mã Token
 SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60), # Token có giá trị 60 phút
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': 'day-la-khoa-bi-mat-chung-cho-oem-ev-system-2025', 
-    # ... (Các cấu hình JWT khác)
+    'SIGNING_KEY': 'day-la-khoa-bi-mat-chung-cho-oem-ev-system-2025',
 }
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000", 
+]
+# Cho phép tất cả các domain trong môi trường dev:
+# CORS_ALLOW_ALL_ORIGINS = True

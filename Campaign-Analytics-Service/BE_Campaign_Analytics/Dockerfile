@@ -18,8 +18,11 @@ WORKDIR /usr/src/app
 # Sao chép file requirements.txt
 COPY requirements.txt /usr/src/app/
 
-# Cài đặt các dependency của Python
+# Cài đặt các dependencies từ requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Cài đặt thêm gói djangorestframework-simplejwt
+RUN pip install djangorestframework-simplejwt
 
 # Sao chép toàn bộ source code của dự án
 COPY . /usr/src/app/

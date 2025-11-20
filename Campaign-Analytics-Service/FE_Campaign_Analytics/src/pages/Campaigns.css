@@ -1,0 +1,120 @@
+/* src/pages/Campaigns.css */
+
+.campaigns-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    margin-top: 0;
+    color: #004d99;
+    border-bottom: 2px solid #e0f0ff;
+    padding-bottom: 10px;
+}
+
+/* Action Bar và Button */
+.action-bar {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.primary-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s;
+}
+
+.primary-button:hover {
+    background-color: #0056b3;
+}
+
+/* Table Styling */
+.campaigns-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.campaigns-table th, .campaigns-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+.campaigns-table th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+}
+
+.campaigns-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.detail-button {
+    background: none;
+    border: 1px solid #007bff;
+    color: #007bff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.detail-button:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.no-data {
+    text-align: center;
+    font-style: italic;
+    color: #6c757d;
+}
+
+.loading-state, .error-message {
+    padding: 15px;
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #d9534f; /* Màu đỏ cho lỗi */
+}
+
+/* buttons */
+.edit-button {
+    background: none;
+    border: 1px solid #ffc107; /* Màu vàng */
+    color: #ffc107;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-button:hover {
+    background-color: #ffc107;
+    color: black;
+}
+
+.delete-button {
+    background: none;
+    border: 1px solid #dc3545; /* Màu đỏ */
+    color: #dc3545;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.delete-button:hover {
+    background-color: #dc3545;
+    color: white;
+}

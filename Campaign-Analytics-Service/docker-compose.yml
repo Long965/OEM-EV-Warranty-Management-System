@@ -1,0 +1,94 @@
+version: '3.8'
+
+# Định nghĩa các biến môi trường (Mật khẩu DB)
+# File này cần nằm cùng thư mục với một file .env chứa các biến này
+# VD: DB_USER_PASSWORD=django_password_123, RABBITMQ_USER=guest, etc.
+
+services:
+
+  # 1. DATABASE SERVICE (MySQL)
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: django_password_123
+      MYSQL_DATABASE: ms5_campaign_db
+      MYSQL_USER: django_user
+      MYSQL_PASSWORD: django_password_123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - oem-ev-net
+
+  # 2. MESSAGE BROKER (RabbitMQ)
+  rabbitmq_ms:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq_ms
+    ports:
+      - "5672:5672"   # Cổng giao tiếp chính
+      - "15672:15672" # Cổng giao diện quản lý web
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - oem-ev-net
+  
+  # 3. USER & IDENTITY SERVICE (MS 1)
+  user_identity_ms:
+    build: 
+      context: ./MS_User_Identity # Trỏ đến thư mục MS 1
+      dockerfile: Dockerfile
+    container_name: user_identity_ms
+    command: python manage.py runserver 0.0.0.0:8001
+    volumes:
+      - ./MS_User_Identity:/usr/src/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - mysql_db
+    networks:
+      - oem-ev-net
+
+  # 4. CAMPAIGN & ANALYTICS SERVICE (MS 5 - CỦA BẠN)
+  campaign_analytics_ms:
+    build: 
+      context: ./Campaign-Analytics-Service/BE_Campaign_Analytics # Trỏ đến thư mục MS 5
+      dockerfile: Dockerfile
+    container_name: campaign_analytics_ms
+    # Chạy Server API
+    command: sh -c "python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./Campaign-Analytics-Service/BE_Campaign_Analytics:/usr/src/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql_db
+      - rabbitmq_ms # Phụ thuộc vào RabbitMQ
+    networks:
+      - oem-ev-net
+
+  # 5. CONSUMER SERVICE (Tiến trình riêng biệt cho Consumer RabbitMQ)
+  # Đây là cách chuyên nghiệp để chạy 2 tiến trình độc lập trong 1 Service logic
+  campaign_consumer_ms:
+    build: 
+      context: ./Campaign-Analytics-Service/BE_Campaign_Analytics
+      dockerfile: Dockerfile
+    container_name: campaign_consumer_ms
+    # Lệnh khởi động Consumer
+    command: python manage.py start_consumer
+    volumes:
+      - ./Campaign-Analytics-Service/BE_Campaign_Analytics:/usr/src/app
+    depends_on:
+      - mysql_db
+      - rabbitmq_ms 
+    networks:
+      - oem-ev-net
+
+networks:
+  oem-ev-net:
+    driver: bridge
+
+volumes:
+  mysql_data:

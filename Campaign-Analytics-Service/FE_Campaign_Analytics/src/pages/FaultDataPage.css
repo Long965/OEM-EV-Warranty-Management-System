@@ -1,0 +1,32 @@
+.fault-data-container {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fault-data-container h2 {
+    color: #004d99;
+    border-bottom: 2px solid #e0f0ff;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.fault-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.fault-table th, .fault-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+.fault-table th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+}
+/* Các style khác */

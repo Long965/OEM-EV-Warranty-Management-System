@@ -1,0 +1,60 @@
+.reports-container {
+    padding: 20px;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.card {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-left: 5px solid #007bff;
+}
+
+.cost-card {
+    border-left-color: #28a745; /* Xanh lá */
+}
+
+.forecast-card {
+    border-left-color: #ffc107; /* Vàng */
+}
+
+.card h3 {
+    margin-top: 0;
+    font-size: 1.1em;
+    color: #6c757d;
+}
+
+.big-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #004d99;
+    margin: 10px 0 5px 0;
+}
+
+.top-faults-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.fault-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid #eee;
+    font-size: 1em;
+}
+
+.fault-item:last-child {
+    border-bottom: none;
+}
