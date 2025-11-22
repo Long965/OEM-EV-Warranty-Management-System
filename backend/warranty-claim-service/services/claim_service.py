@@ -97,7 +97,6 @@ def list_user_history(db: Session, user_id: str):
 def list_admin_history(db: Session):
     return (
         db.query(ClaimHistory)
-        # ✅ REMOVED filter - không lọc gì cả
         .order_by(ClaimHistory.timestamp.desc())
         .all()
     )

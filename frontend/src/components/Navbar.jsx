@@ -22,7 +22,7 @@ export default function Navbar() {
               <>
                 <Link to="/users">Users</Link>
                 <Link to="/claims">Warranty Claims</Link>
-                <Link to="/history">History (Admin)</Link>
+                <Link to="/history">History</Link>
               </>
             )}
            

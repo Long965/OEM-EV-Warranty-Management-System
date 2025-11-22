@@ -3,6 +3,272 @@ import { useState, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/client'
 
+const styles = {
+  container: {
+    maxWidth: 1400,
+    margin: '0 auto',
+    padding: '32px 24px',
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 50%, #ecfeff 100%)'
+  },
+  header: {
+    marginBottom: 24,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16
+  },
+  iconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    background: 'linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 28,
+    boxShadow: '0 8px 24px rgba(20, 184, 166, 0.3)'
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 800,
+    color: '#1e293b',
+    margin: 0
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 4
+  },
+  infoBanner: {
+    background: 'linear-gradient(135deg, #d1fae5 0%, #cffafe 100%)',
+    padding: '20px 24px',
+    borderRadius: 16,
+    marginBottom: 24,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    border: '2px solid #5eead4',
+    boxShadow: '0 4px 12px rgba(94, 234, 212, 0.2)'
+  },
+  bannerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    background: '#ccfbf1',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 24
+  },
+  bannerTitle: {
+    fontWeight: 700,
+    fontSize: 16,
+    color: '#0d9488',
+    marginBottom: 4
+  },
+  bannerDesc: {
+    fontSize: 14,
+    color: '#5b7a75'
+  },
+  statsRow: {
+    display: 'flex',
+    gap: 16,
+    marginBottom: 24,
+    flexWrap: 'wrap'
+  },
+  statCard: (color, bgColor) => ({
+    flex: '1 1 160px',
+    padding: '18px 22px',
+    borderRadius: 16,
+    background: '#fff',
+    border: `1px solid ${bgColor}`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+  }),
+  statIcon: (bgColor) => ({
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    background: bgColor,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 20
+  }),
+  statValue: (color) => ({
+    fontSize: 26,
+    fontWeight: 800,
+    color: color
+  }),
+  statLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: 500
+  },
+  toolbar: {
+    display: 'flex',
+    gap: 16,
+    marginBottom: 24,
+    flexWrap: 'wrap',
+    alignItems: 'center'
+  },
+  searchBox: {
+    flex: '1 1 350px',
+    position: 'relative'
+  },
+  searchInput: {
+    width: '100%',
+    padding: '14px 20px 14px 52px',
+    borderRadius: 14,
+    border: '2px solid #e2e8f0',
+    fontSize: 15,
+    background: '#fff',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 18,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    fontSize: 20,
+    opacity: 0.5
+  },
+  tableCard: {
+    background: '#fff',
+    borderRadius: 20,
+    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+    overflow: 'hidden'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse'
+  },
+  th: {
+    padding: '16px 20px',
+    textAlign: 'left',
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    background: '#f0fdfa',
+    borderBottom: '1px solid #99f6e4'
+  },
+  td: {
+    padding: '16px 20px',
+    borderBottom: '1px solid #f1f5f9',
+    fontSize: 14,
+    color: '#334155'
+  },
+  idBadge: {
+    display: 'inline-flex',
+    padding: '4px 12px',
+    borderRadius: 8,
+    background: '#ccfbf1',
+    color: '#0d9488',
+    fontSize: 13,
+    fontWeight: 700
+  },
+  vinText: {
+    fontFamily: 'monospace',
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#334155',
+    background: '#f1f5f9',
+    padding: '4px 10px',
+    borderRadius: 6
+  },
+  actionBadge: (type) => {
+    const colors = {
+      create: { bg: '#d1fae5', color: '#059669', border: '#6ee7b7' },
+      edit: { bg: '#fef3c7', color: '#d97706', border: '#fcd34d' },
+      approve: { bg: '#dbeafe', color: '#2563eb', border: '#93c5fd' },
+      reject: { bg: '#fee2e2', color: '#dc2626', border: '#fca5a5' }
+    }
+    const c = colors[type] || colors.create
+    return {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '6px 14px',
+      borderRadius: 20,
+      fontSize: 13,
+      fontWeight: 600,
+      background: c.bg,
+      color: c.color,
+      border: `1px solid ${c.border}`
+    }
+  },
+  roleBadge: (type) => {
+    const colors = {
+      admin: { bg: '#fae8ff', color: '#a855f7' },
+      sc_staff: { bg: '#dbeafe', color: '#3b82f6' },
+      sc_technician: { bg: '#d1fae5', color: '#10b981' },
+      evm_staff: { bg: '#fef3c7', color: '#f59e0b' }
+    }
+    const c = colors[type] || colors.sc_staff
+    return {
+      display: 'inline-flex',
+      padding: '3px 8px',
+      borderRadius: 6,
+      fontSize: 11,
+      fontWeight: 600,
+      background: c.bg,
+      color: c.color
+    }
+  },
+  performerCell: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10
+  },
+  emptyState: {
+    padding: '80px 20px',
+    textAlign: 'center'
+  },
+  timelineIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 16,
+    marginRight: 12
+  }
+}
+
+const actionConfig = {
+  'Tạo mới phiếu': { type: 'create', icon: '➕', bg: '#d1fae5' },
+  'Chỉnh sửa phiếu': { type: 'edit', icon: '✎', bg: '#fef3c7' },
+  'Duyệt phiếu': { type: 'approve', icon: '✓', bg: '#dbeafe' },
+  'Từ chối phiếu': { type: 'reject', icon: '✗', bg: '#fee2e2' }
+}
+
+const roleConfig = {
+  'Admin': { type: 'admin', label: 'Admin' },
+  'SC_Staff': { type: 'sc_staff', label: 'SC Staff' },
+  'SC_Technician': { type: 'sc_technician', label: 'SC Tech' },
+  'EVM_Staff': { type: 'evm_staff', label: 'EVM Staff' }
+}
+
+const ActionBadge = ({ action }) => {
+  const config = actionConfig[action] || { type: 'create', icon: '•' }
+  return (
+    <span style={styles.actionBadge(config.type)}>
+      {config.icon} {action}
+    </span>
+  )
+}
+
+const RoleBadge = ({ role }) => {
+  const config = roleConfig[role] || { type: 'sc_staff', label: role }
+  return <span style={styles.roleBadge(config.type)}>{config.label}</span>
+}
+
 export default function ClaimHistory() {
   const { user } = useAuth()
   const [search, setSearch] = useState('')
@@ -29,153 +295,168 @@ export default function ClaimHistory() {
     )
   }, [data, search])
 
+  const stats = useMemo(() => {
+    const create = data.filter(h => h.action === 'Tạo mới phiếu').length
+    const edit = data.filter(h => h.action === 'Chỉnh sửa phiếu').length
+    const approve = data.filter(h => h.action === 'Duyệt phiếu').length
+    const reject = data.filter(h => h.action === 'Từ chối phiếu').length
+    return { total: data.length, create, edit, approve, reject }
+  }, [data])
+
   const formatDate = (dateString) => {
     if (!dateString) return '---'
-    return new Date(dateString).toLocaleString('vi-VN')
-  }
-
-  const getActionBadge = (action) => {
-    const actionMap = {
-      'Tạo mới phiếu': { class: 'sc_staff', icon: '➕' },
-      'Chỉnh sửa phiếu': { class: 'evm_staff', icon: '✎' },
-      'Duyệt phiếu': { class: 'admin', icon: '✓' },
-      'Từ chối phiếu': { class: 'rejected', icon: '✗' }
-    }
-    const config = actionMap[action] || { class: 'sc_staff', icon: '•' }
-    return (
-      <span className={`role-pill role-${config.class}`}>
-        {config.icon} {action}
-      </span>
-    )
-  }
-
-  const getRoleBadge = (role) => {
-    const roleMap = {
-      'Admin': { class: 'admin', label: 'Admin' },
-      'SC_Staff': { class: 'sc_staff', label: 'SC Staff' },
-      'SC_Technician': { class: 'sc_technician', label: 'SC Tech' },
-      'EVM_Staff': { class: 'evm_staff', label: 'EVM Staff' }
-    }
-    const config = roleMap[role] || { class: 'sc_staff', label: role }
-    return (
-      <span className={`role-pill role-${config.class}`} style={{ fontSize: 11, padding: '4px 8px' }}>
-        {config.label}
-      </span>
-    )
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    })
   }
 
   return (
-    <div className="container">
-      <div className="page-title">
-        <div className="ico">📜</div>
-        <h2>Lịch sử phiếu bảo hành (Admin)</h2>
+    <div style={styles.container}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div style={styles.iconBox}>📜</div>
+        <div>
+          <h1 style={styles.title}>Lịch sử phiếu bảo hành</h1>
+          <p style={styles.subtitle}>Theo dõi tất cả hoạt động trên hệ thống</p>
+        </div>
       </div>
 
- 
-      <div style={{
-        background: 'linear-gradient(135deg, var(--warning-light) 0%, var(--danger-light) 100%)',
-        padding: '16px 20px',
-        borderRadius: 12,
-        marginBottom: 24,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        border: '2px solid var(--warning)'
-      }}>
-        <span style={{ fontSize: 24 }}>⚡</span>
+      {/* Info Banner */}
+      <div style={styles.infoBanner}>
+        <div style={styles.bannerIcon}>⚡</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--warning)', marginBottom: 4 }}>
-            Lịch sử Toàn Hệ Thống
-          </div>
-          <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+          <div style={styles.bannerTitle}>Lịch sử Toàn Hệ Thống</div>
+          <div style={styles.bannerDesc}>
             Hiển thị tất cả các hoạt động của Admin và User trên hệ thống warranty claim
           </div>
         </div>
       </div>
 
-      <div className="toolbar">
-        <div className="searchbox">
-          <span className="loupe">🔎</span>
+      {/* Stats Row */}
+      <div style={styles.statsRow}>
+        <div style={styles.statCard('#14b8a6', '#ccfbf1')}>
+          <div style={styles.statIcon('#ccfbf1')}>📊</div>
+          <div>
+            <div style={styles.statValue('#14b8a6')}>{stats.total}</div>
+            <div style={styles.statLabel}>Tổng bản ghi</div>
+          </div>
+        </div>
+        <div style={styles.statCard('#10b981', '#d1fae5')}>
+          <div style={styles.statIcon('#d1fae5')}>➕</div>
+          <div>
+            <div style={styles.statValue('#10b981')}>{stats.create}</div>
+            <div style={styles.statLabel}>Tạo mới</div>
+          </div>
+        </div>
+        <div style={styles.statCard('#2563eb', '#dbeafe')}>
+          <div style={styles.statIcon('#dbeafe')}>✓</div>
+          <div>
+            <div style={styles.statValue('#2563eb')}>{stats.approve}</div>
+            <div style={styles.statLabel}>Đã duyệt</div>
+          </div>
+        </div>
+        <div style={styles.statCard('#dc2626', '#fee2e2')}>
+          <div style={styles.statIcon('#fee2e2')}>✗</div>
+          <div>
+            <div style={styles.statValue('#dc2626')}>{stats.reject}</div>
+            <div style={styles.statLabel}>Từ chối</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div style={styles.toolbar}>
+        <div style={styles.searchBox}>
+          <span style={styles.searchIcon}>🔍</span>
           <input
+            style={styles.searchInput}
             placeholder="Tìm theo VIN, hành động, người thực hiện..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ color: 'var(--text-muted)', fontSize: 15, fontWeight: 600 }}>
-          Tổng: <strong style={{ color: 'var(--primary)' }}>{filtered.length}</strong> bản ghi
+        <div style={{ color: '#64748b', fontSize: 15, fontWeight: 600 }}>
+          Hiển thị: <strong style={{ color: '#14b8a6' }}>{filtered.length}</strong> bản ghi
         </div>
       </div>
 
-      <div className="card">
-        <div style={{ overflow: 'auto' }}>
-          <table className="table">
+      {/* Table */}
+      <div style={styles.tableCard}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={styles.table}>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>VIN</th>
-                <th>Mô tả</th>
-                <th>Hành động</th>
-                <th>Người thực hiện</th>
-                <th>Thời gian</th>
+                <th style={styles.th}>ID</th>
+                <th style={styles.th}>VIN xe</th>
+                <th style={styles.th}>Mô tả</th>
+                <th style={styles.th}>Hành động</th>
+                <th style={styles.th}>Người thực hiện</th>
+                <th style={styles.th}>Thời gian</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="7" className="card--pad">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 20 }}>⏳</span>
-                      Đang tải dữ liệu...
-                    </div>
+                  <td colSpan="6" style={{...styles.td, textAlign: 'center', padding: '60px 20px'}}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>⏳</div>
+                    <div style={{ fontSize: 16, color: '#64748b' }}>Đang tải dữ liệu...</div>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="card--pad text-muted">
-                    <div style={{ padding: '40px 0' }}>
-                      <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-                      <div style={{ fontSize: 18, fontWeight: 600 }}>Chưa có lịch sử nào</div>
-                      <div style={{ fontSize: 14, marginTop: 4 }}>Các hoạt động sẽ được ghi lại tại đây</div>
+                  <td colSpan="6" style={styles.td}>
+                    <div style={styles.emptyState}>
+                      <div style={{ fontSize: 72, marginBottom: 16, opacity: 0.5 }}>📭</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
+                        Chưa có lịch sử nào
+                      </div>
+                      <div style={{ fontSize: 15, color: '#64748b' }}>
+                        Các hoạt động sẽ được ghi lại tại đây
+                      </div>
                     </div>
                   </td>
                 </tr>
               ) : (
-                filtered.map(history => (
-                  <tr key={history.id}>
-                    <td><strong style={{ color: 'var(--primary)' }}>#{history.id}</strong></td>
-                    <td>
-                      {history.claim_id ? (
-                        <span style={{ color: 'var(--info)', fontWeight: 600 }}>
-                          #{history.claim_id}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>---</span>
-                      )}
-                    </td>
-                    <td><strong>{history.vehicle_vin || '---'}</strong></td>
-                    <td style={{ maxWidth: 300 }}>
-                      <div style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {history.issue_desc || '---'}
-                      </div>
-                    </td>
-                    <td>{getActionBadge(history.action)}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontWeight: 600 }}>{history.performed_by || '---'}</span>
-                        {/* ✅ FIXED: Hiển thị role từ database thay vì hardcode "Admin" */}
-                        {getRoleBadge(history.performed_role)}
-                      </div>
-                    </td>
-                    <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      {formatDate(history.timestamp)}
-                    </td>
-                  </tr>
-                ))
+                filtered.map((h, idx) => {
+                  const config = actionConfig[h.action] || { icon: '•', bg: '#f1f5f9' }
+                  return (
+                    <tr key={h.id} style={{ background: idx % 2 === 0 ? '#fff' : '#f0fdfa' }}>
+                      <td style={styles.td}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div style={{...styles.timelineIcon, background: config.bg}}>
+                            {config.icon}
+                          </div>
+                          <span style={styles.idBadge}>#{h.id}</span>
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        {h.vehicle_vin ? (
+                          <span style={styles.vinText}>{h.vehicle_vin}</span>
+                        ) : <span style={{ color: '#94a3b8' }}>---</span>}
+                      </td>
+                      <td style={{...styles.td, maxWidth: 240}}>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#475569' }}>
+                          {h.issue_desc || '---'}
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <ActionBadge action={h.action} />
+                      </td>
+                      <td style={styles.td}>
+                        <div style={styles.performerCell}>
+                          <span style={{ fontWeight: 600, color: '#334155' }}>{h.performed_by || '---'}</span>
+                          <RoleBadge role={h.performed_role} />
+                        </div>
+                      </td>
+                      <td style={{...styles.td, fontSize: 13, color: '#64748b'}}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 16 }}>🕐</span>
+                          {formatDate(h.timestamp)}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
