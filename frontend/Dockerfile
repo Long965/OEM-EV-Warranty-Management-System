@@ -1,20 +1,17 @@
-# frontend/Dockerfile (Phiên bản Development)
-
-FROM node:18-alpine
-
+# ---- BUILD ----
+FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Copy package.json trước để tận dụng cache của Docker
-COPY package*.json ./
-
-# Cài đặt dependencies
-RUN npm install
-
-# Copy toàn bộ code
+COPY package.json package-lock.json* ./
+RUN npm ci || npm install
 COPY . .
+# override được khi build: --build-arg VITE_API_BASE_URL=http://gateway:8000
+ARG VITE_API_BASE_URL=http://gateway:8000
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+RUN npm run build
 
-# Mở cổng 3000 (Mặc định của Vite có thể là 5173, nhưng ta sẽ map ra 3000)
-EXPOSE 3000
-
-# Chạy lệnh start (đã định nghĩa trong package.json là "vite --host")
-CMD ["npm", "start"]
+# ---- SERVE ----
+FROM nginx:1.27-alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx","-g","daemon off;"]
