@@ -1,0 +1,194 @@
+services:
+  # 🌐 API GATEWAY (Cổng 8000)
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: micro_gateway
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    depends_on:
+      backend:
+        condition: service_started
+      auth_service: # <-- Cần phụ thuộc vào auth_service
+        condition: service_started
+    environment:
+      # ✅ PHẢI CÓ ĐẦY ĐỦ CÁC BIẾN NÀY
+      BACKEND_URL: http://backend:8100
+      AUTH_SERVICE_URL: http://auth_service:8001 
+      JWT_SECRET: "very-secret-change-me" # <-- ĐỒNG BỘ VỚI AUTH
+    volumes:
+      - ./gateway:/app
+    networks:
+      - app_net
+    restart: always
+
+  # 🔐 AUTH SERVICE (Cổng 8001) - ĐÃ THÊM LẠI
+  auth_service:
+    build:
+      context: . # <-- Đảm bảo đường dẫn này đúng
+      dockerfile: ./auth_service/Dockerfile 
+    container_name: oem_ev_auth_service
+    command: python -m uvicorn auth_service.main:app --host 0.0.0.0 --port 8001 --reload
+    environment:
+      DATABASE_URL: "mysql+pymysql://root:root@mysql-db:3306/ev_warranty_db" # (Giả sử DB)
+      JWT_SECRET: "very-secret-change-me" # <-- ĐỒNG BỘ VỚI GATEWAY
+      PYTHONPATH: /app
+    ports:
+      - "8001:8001"
+    depends_on:
+      mysql-db: 
+        condition: service_healthy 
+    networks:
+      - app_net
+    restart: always
+
+  # ⚙️ BACKEND FASTAPI (Cổng 8100)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oem_ev_warranty_backend
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8100 --reload
+    environment:
+      DB_URL: mysql+pymysql://root:root@mysql-db:3306/warehouse_management
+      REDIS_URL: redis://redis-cache:6379/0
+      PYTHONPATH: /app
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8100:8100"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+    restart: always
+    networks:
+      - app_net
+
+  # 💻 Frontend React (Cổng 3000)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: oem_ev_warranty_frontend
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      # ✅ SỬA LỖI: Trình duyệt phải gọi localhost, không phải "gateway"
+      - REACT_APP_API_BASE=http://localhost:8000/api
+      - DISABLE_ESLINT_PLUGIN=true
+    stdin_open: true
+    tty: true
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway:
+        condition: service_started
+    networks:
+      - app_net
+
+ # 👤 User Service (Cổng 8002)
+  user_service:
+    build:
+      context: ./user_service
+      dockerfile: Dockerfile
+    container_name: oem_ev_user_service
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+    volumes:
+      - ./user_service:/app
+      - ./shared:/app/shared
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: "mysql+pymysql://root:root@mysql-db:3306/ev_warranty_db"
+      JWT_SECRET: "very-secret-change-me"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+
+# 📑 Warranty Claim Service (Cổng 8082)
+  warranty-claim-service:
+    build:
+      context: ./warranty-claim-service
+      dockerfile: Dockerfile
+    container_name: warranty-claim-service
+    ports:
+      - "8082:8082"
+    environment:
+      # ✅ Sửa host: mysql-db, pass: root
+      DB_URL: "mysql+pymysql://root:root@mysql-db:3306/warranty_claim_service"
+      JWT_SECRET: "very-secret-change-me" # Đồng bộ với Gateway
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+
+  # 📤 Warranty Upload Service (Cổng 8083)
+  warranty-upload-service:
+    build:
+      context: ./warranty-upload-service
+      dockerfile: Dockerfile
+    container_name: warranty-upload-service
+    ports:
+      - "8083:8083"
+    environment:
+      # Dùng chung DB với Claim Service
+      DB_URL: "mysql+pymysql://root:root@mysql-db:3306/warranty_claim_service"
+      # Gọi nội bộ qua tên service (http://service_name:port)
+      CLAIM_SERVICE_URL: "http://warranty-claim-service:8082/claims"
+      JWT_SECRET: "very-secret-change-me"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      warranty-claim-service:
+        condition: service_started
+    networks:
+      - app_net
+    restart: always
+
+  # 🗄️ MYSQL Database (Cổng 3308)
+  mysql-db:
+    image: mysql:8.0
+    container_name: oem_ev_warranty_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      # ✅ Đảm bảo DB 'ev_warranty_db' được tạo
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql-init/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - app_net
+
+  # 🚀 REDIS Cache
+  redis-cache:
+    image: redis:7.0
+    container_name: oem_ev_warranty_redis
+    expose:
+      - "6379"
+    networks:
+      - app_net
+
+volumes:
+  mysql-data:
+
+networks:
+  app_net:
+    driver: bridge
