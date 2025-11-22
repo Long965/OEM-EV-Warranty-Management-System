@@ -1,2 +1,0 @@
-CREATE DATABASE IF NOT EXISTS warehouse_management;
-CREATE DATABASE IF NOT EXISTS ev_warranty_db;

@@ -13,10 +13,12 @@ import UploadsList from './pages/UploadsList'
 import ClaimHistory from './pages/ClaimHistory'
 import UserHistory from './pages/UserHistory'
 
+
 import Parts from './pages/Parts'
 import Assignments from './pages/Assignments'
 import Alerts from './pages/Alerts'
 import Inventory from './pages/Inventory'
+import Suppliers from './pages/Suppliers'
 
 export default function App() {
   const location = useLocation()
@@ -124,6 +126,16 @@ export default function App() {
               <ProtectedRoute>
                   <RoleGuard roles={['Admin']}>
                     <Assignments />
+                  </RoleGuard>
+                </ProtectedRoute>
+          } />
+
+           <Route 
+            path="/suppliers" 
+            element={
+              <ProtectedRoute>
+                  <RoleGuard roles={['Admin']}>
+                    <Suppliers />
                   </RoleGuard>
                 </ProtectedRoute>
           } />

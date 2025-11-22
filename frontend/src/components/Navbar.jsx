@@ -27,6 +27,7 @@ export default function Navbar() {
                 <Link to="/assignments">Assignments</Link>
                 <Link to="/inventory">Inventory</Link>
                 <Link to="/alerts">Alerts</Link>
+                <Link to="/suppliers">Suppliers</Link>
               </>
             )}
            

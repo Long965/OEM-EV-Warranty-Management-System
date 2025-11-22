@@ -6,12 +6,13 @@ import {
 } from "@mui/material";
 import { Edit, Delete, Add } from "@mui/icons-material";
 
-// Cập nhật state khớp với JSON: thay oem_number bằng sku, thêm price, supplier_id
+// 1. Thêm trường quantity vào state mặc định
 const initialForm = { 
   name: "", 
   sku: "", 
   category: "", 
   price: "", 
+  quantity: "0", // Mặc định là 0
   description: "",
   supplier_id: "" 
 };
@@ -30,7 +31,7 @@ export default function Parts() {
       const res = await getParts();
       setParts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      setError("Lỗi tải danh sách phụ tùng.");
+      setError("Lỗi tải danh sách phụ tùng. Kiểm tra Backend.");
     } finally {
       setLoading(false);
     }
@@ -41,15 +42,21 @@ export default function Parts() {
   const handleOpen = (item = null) => {
     setError("");
     setEditId(item ? item.id : null);
-    // Khi edit, map dữ liệu vào form. Lưu ý xử lý null cho các trường có thể null
-    setFormData(item ? { 
-      name: item.name,
-      sku: item.sku,
-      category: item.category || "",
-      price: item.price,
-      description: item.description || "",
-      supplier_id: item.supplier_id || ""
-    } : initialForm);
+    
+    // 2. Map dữ liệu khi sửa, đảm bảo không bị null
+    if (item) {
+      setFormData({
+        name: item.name,
+        sku: item.sku,
+        category: item.category || "",
+        price: item.price,
+        quantity: item.quantity || 0, // Load số lượng
+        description: item.description || "",
+        supplier_id: item.supplier_id || "" // Nếu null thì để chuỗi rỗng
+      });
+    } else {
+      setFormData(initialForm);
+    }
     setOpen(true);
   };
 
@@ -58,27 +65,31 @@ export default function Parts() {
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async () => {
-    // Validate đơn giản
-    if (!formData.name || !formData.sku || !formData.price) {
-        setError("Vui lòng nhập Tên, SKU và Giá.");
+    // 3. Sửa logic Validation: Cho phép giá trị 0, chỉ chặn chuỗi rỗng
+    if (!formData.name.trim() || !formData.sku.trim() || formData.price === "") {
+        setError("Vui lòng nhập Tên, SKU và Giá hợp lệ.");
         return;
     }
 
     try {
-      // Chuyển đổi dữ liệu số trước khi gửi lên Server
+      // 4. Xử lý dữ liệu kỹ càng trước khi gửi (Payload construction)
       const payload = {
         ...formData,
         price: Number(formData.price),
-        supplier_id: formData.supplier_id ? Number(formData.supplier_id) : null
+        quantity: parseInt(formData.quantity) || 0, // Chuyển về số nguyên
+        // Nếu supplier_id rỗng hoặc bằng 0 thì gửi null để tránh lỗi khóa ngoại
+        supplier_id: (formData.supplier_id && formData.supplier_id !== "0") ? Number(formData.supplier_id) : null
       };
+
+      console.log("Sending payload:", payload); // Log để debug nếu lỗi
 
       if (editId) await updatePart(editId, payload);
       else await createPart(payload);
       
       handleClose();
-      loadData();
+      loadData(); // Tải lại dữ liệu mới
     } catch (err) { 
-      setError("Lỗi khi lưu dữ liệu. Kiểm tra lại API."); 
+      setError("Lỗi khi lưu dữ liệu. Hãy kiểm tra mã SKU có bị trùng không?"); 
       console.error(err);
     }
   };
@@ -89,7 +100,6 @@ export default function Parts() {
     }
   };
 
-  // Hàm format tiền tệ VND
   const formatCurrency = (value) => {
     if (!value) return "0 ₫";
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -117,6 +127,7 @@ export default function Parts() {
                 <TableCell><b>Tên Phụ Tùng</b></TableCell>
                 <TableCell><b>Mã SKU</b></TableCell>
                 <TableCell><b>Giá</b></TableCell>
+                <TableCell><b>Số lượng</b></TableCell> {/* Thêm cột số lượng */}
                 <TableCell><b>Danh Mục</b></TableCell>
                 <TableCell><b>Mô Tả</b></TableCell>
                 <TableCell align="right"><b>Hành Động</b></TableCell>
@@ -131,6 +142,7 @@ export default function Parts() {
                   <TableCell sx={{ color: 'success.main', fontWeight: 'bold' }}>
                     {formatCurrency(row.price)}
                   </TableCell>
+                  <TableCell>{row.quantity || 0}</TableCell>
                   <TableCell>{row.category || "---"}</TableCell>
                   <TableCell>{row.description}</TableCell>
                   <TableCell align="right">
@@ -139,74 +151,52 @@ export default function Parts() {
                   </TableCell>
                 </TableRow>
               ))}
-              {parts.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">Chưa có dữ liệu</TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </TableContainer>
       )}
 
-      {/* Dialog Form */}
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>{editId ? "Cập Nhật Phụ Tùng" : "Thêm Mới Phụ Tùng"}</DialogTitle>
         <DialogContent>
           <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField 
-                label="Tên Phụ Tùng" 
-                name="name" 
-                fullWidth 
-                required
-                value={formData.name} 
-                onChange={handleChange} 
+                label="Tên Phụ Tùng" name="name" fullWidth required
+                value={formData.name} onChange={handleChange} 
             />
             <Box display="flex" gap={2}>
                 <TextField 
-                    label="Mã SKU" 
-                    name="sku" 
-                    fullWidth 
-                    required
-                    value={formData.sku} 
-                    onChange={handleChange} 
+                    label="Mã SKU" name="sku" fullWidth required
+                    value={formData.sku} onChange={handleChange} 
                     placeholder="VD: VF-WHEEL-001"
+                    disabled={!!editId} // Không cho sửa SKU khi Edit để tránh lỗi logic
                 />
                 <TextField 
-                    label="Giá (VNĐ)" 
-                    name="price" 
-                    type="number" 
-                    fullWidth 
-                    required
-                    value={formData.price} 
-                    onChange={handleChange} 
+                    label="Giá (VNĐ)" name="price" type="number" fullWidth required
+                    value={formData.price} onChange={handleChange} 
+                />
+            </Box>
+            {/* Thêm input Số lượng */}
+            <Box display="flex" gap={2}>
+                <TextField 
+                    label="Số lượng tồn" name="quantity" type="number" fullWidth
+                    value={formData.quantity} onChange={handleChange} 
+                />
+                <TextField 
+                    label="Danh Mục" name="category" fullWidth 
+                    value={formData.category} onChange={handleChange} 
                 />
             </Box>
             <Box display="flex" gap={2}>
-                <TextField 
-                    label="Danh Mục" 
-                    name="category" 
-                    fullWidth 
-                    value={formData.category} 
-                    onChange={handleChange} 
-                />
-                <TextField 
-                    label="Supplier ID" 
-                    name="supplier_id" 
-                    type="number"
-                    fullWidth 
-                    value={formData.supplier_id} 
-                    onChange={handleChange} 
+                 <TextField 
+                    label="Supplier ID" name="supplier_id" type="number" fullWidth 
+                    value={formData.supplier_id} onChange={handleChange} 
+                    helperText="Để trống nếu chưa có NCC"
                 />
             </Box>
             <TextField 
-                label="Mô Tả Chi Tiết" 
-                name="description" 
-                fullWidth 
-                multiline 
-                rows={3} 
-                value={formData.description} 
-                onChange={handleChange} 
+                label="Mô Tả Chi Tiết" name="description" fullWidth multiline rows={3} 
+                value={formData.description} onChange={handleChange} 
             />
           </Box>
         </DialogContent>

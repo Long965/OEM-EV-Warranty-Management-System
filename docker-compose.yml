@@ -90,6 +90,70 @@ services:
     networks:
       - app_net
 
+ # 👤 User Service (Cổng 8002)
+  user_service:
+    build:
+      context: ./user_service
+      dockerfile: Dockerfile
+    container_name: oem_ev_user_service
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+    volumes:
+      - ./user_service:/app
+      - ./shared:/app/shared
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: "mysql+pymysql://root:root@mysql-db:3306/ev_warranty_db"
+      JWT_SECRET: "very-secret-change-me"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+
+# 📑 Warranty Claim Service (Cổng 8082)
+  warranty-claim-service:
+    build:
+      context: ./warranty-claim-service
+      dockerfile: Dockerfile
+    container_name: warranty-claim-service
+    ports:
+      - "8082:8082"
+    environment:
+      # ✅ Sửa host: mysql-db, pass: root
+      DB_URL: "mysql+pymysql://root:root@mysql-db:3306/warranty_claim_service"
+      JWT_SECRET: "very-secret-change-me" # Đồng bộ với Gateway
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+
+  # 📤 Warranty Upload Service (Cổng 8083)
+  warranty-upload-service:
+    build:
+      context: ./warranty-upload-service
+      dockerfile: Dockerfile
+    container_name: warranty-upload-service
+    ports:
+      - "8083:8083"
+    environment:
+      # Dùng chung DB với Claim Service
+      DB_URL: "mysql+pymysql://root:root@mysql-db:3306/warranty_claim_service"
+      # Gọi nội bộ qua tên service (http://service_name:port)
+      CLAIM_SERVICE_URL: "http://warranty-claim-service:8082/claims"
+      JWT_SECRET: "very-secret-change-me"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      warranty-claim-service:
+        condition: service_started
+    networks:
+      - app_net
+    restart: always
+
   # 🗄️ MYSQL Database (Cổng 3308)
   mysql-db:
     image: mysql:8.0
@@ -98,12 +162,12 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       # ✅ Đảm bảo DB 'ev_warranty_db' được tạo
-      MYSQL_DATABASE: warehouse_management,ev_warranty_db
       TZ: Asia/Ho_Chi_Minh
     ports:
       - "3308:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./mysql-init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
       interval: 10s
