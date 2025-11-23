@@ -1,0 +1,74 @@
+version: '3.9'
+
+services:
+  # ----------------------------------------------------
+  # 1. Dịch vụ MySQL Database
+  # ----------------------------------------------------
+  db:
+    image: mysql:8.0
+    container_name: vms_mysql_db
+    environment:
+      # Thông tin đăng nhập DB (Sử dụng các giá trị này trong settings.py)
+      MYSQL_ROOT_PASSWORD: root_password_secret
+      MYSQL_DATABASE: vms_warranty_db
+      MYSQL_USER: vms_user
+      MYSQL_PASSWORD: vms_password_secret
+    ports:
+      - "3307:3306"
+    volumes:
+      # Volume để lưu trữ dữ liệu DB vĩnh viễn
+      - vms-db-data:/var/lib/mysql
+    restart: always
+    # Cài đặt timeout lớn hơn để máy yếu vẫn khởi động được
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 3s
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: vms_rabbitmq
+    ports:
+      - "5672:5672"   # Cổng AMQP (giao tiếp code)
+      - "15672:15672" # Cổng Management UI (để kiểm tra)
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  # ----------------------------------------------------
+  # 2. Dịch vụ Django Application (Backend)
+  # ----------------------------------------------------
+  web:
+    build: .
+    container_name: vms_django_app
+    
+    # CHÚ Ý: Đã thay thế CMD bằng ENTRYPOINT trong Dockerfile để gọi entrypoint.sh
+    # Lệnh mặc định sẽ được entrypoint.sh thực thi sau khi DB sẵn sàng
+    command: python manage.py runserver 0.0.0.0:8000
+    
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+      
+    depends_on:
+      db:
+        condition: service_healthy # Chỉ khởi động sau khi healthcheck của DB thành công
+      rabbitmq:  
+        condition: service_healthy
+        
+        
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_NAME: vms_warranty_db
+      DATABASE_USER: vms_user
+      DATABASE_PASSWORD: vms_password_secret
+
+# Định nghĩa các Named Volume
+volumes:
+  vms-db-data:
